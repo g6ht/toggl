@@ -1,10 +1,17 @@
 from PyQt5 import uic, QtGui, QtCore
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea,\
-    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect
+    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QHBoxLayout, QVBoxLayout
 from PyQt5.QtCore import QTimer
 import time, datetime
+import pyqtgraph as pg
+from pyqtgraph.Qt import QtCore, QtGui
 
 import sys
+
+class InsightsWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('toggl_insights.ui', self)
 
 
 class MyWidget(QMainWindow):
@@ -12,7 +19,6 @@ class MyWidget(QMainWindow):
         super().__init__()
         self.setWindowTitle("Toggl")
         uic.loadUi('toggl_app.ui', self)
-        self.grid = QGridLayout()
 
         self.history_list = []
 
@@ -26,10 +32,11 @@ class MyWidget(QMainWindow):
         self.start_text.setText('Тут пока ничего нет...')
         self.start_text.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 20))
         self.scroll_area.setWidget(self.start_text)
-        self.task.move(25, 50)
-        self.tag.move(474, 50)
         self.stop.move(790, 47)
         self.start.move(750, 39)
+        self.select_color.move(640, 60)
+
+        self.insights_button.clicked.connect(self.view_insights)
 
         self.no_color.toggle()
         self.no_color.clicked.connect(self.no_color_clicked)
@@ -48,6 +55,29 @@ class MyWidget(QMainWindow):
         self.stop.clicked.connect(self.timerUp.stop)
         self.stop.clicked.connect(self.newtask)
         self.stop.clicked.connect(self.reset)
+
+    def view_insights(self):
+        self.date_list = []
+        self.time_list = []
+        if self.history_list == []:
+            self.insights_window = InsightsWindow()
+            self.insights_window.insights_label.setText('Нет данных для составления вашей статистики.')
+        else:
+            self.insights_window = pg.GraphicsWindow()
+            self.insights_window.resize(800, 350)
+            self.insights_window.setWindowTitle('Статистика')
+            plt1 = self.insights_window.addPlot()
+            for data_list in self.history_list: # надо создать словарь, тут херня
+                if not data_list[0].text()[:5] in self.date_list:   # и вообще этот модуль стремный
+                    self.date_list.append(data_list[0].text()[:5])
+                self.time_list.append(data_list[-1].text())   # надо прибавлять часы и делать статистику по дням
+                print(data_list[-1].text())
+                print(data_list[0].text()[:5])
+            x = self.date_list # список дней
+            y = self.time_list # список часов
+
+            plt1.plot(x, y, stepMode=True, fillLevel=0, filloutline=True, brush=(200, 0, 255, 150))
+        self.insights_window.show()
 
     def current_time(self):
         if '' == self.task.text():
@@ -72,12 +102,15 @@ class MyWidget(QMainWindow):
     def reset(self):
         self.time = 0
         self.settimer(self.time)
-
-    # не скроллится
+    # сортировка по дате(?)
+    # диаграмма продуктивности
     def newtask(self):
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
         else:
+            self.scrollAreaWidgetContents = QWidget()
+            self.scrollAreaWidgetContents.setMinimumSize(900, 400)
+            self.grid = QGridLayout(self.scrollAreaWidgetContents)
             if self.no_color.isChecked():
                 self.color_label = QLabel('○')
                 self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
@@ -95,16 +128,12 @@ class MyWidget(QMainWindow):
                 self.tag_label_font = self.tag_label.font()
                 self.tag_label_font.setItalic(True)
                 self.tag_label.setFont(self.tag_label_font)
-            self.out_widget = QWidget(self)
-            self.out_widget.setFixedHeight(400)
-            self.out_widget.setFixedWidth(900)
-            self.out_widget.setLayout(self.grid)
             self.start_time_label = QLabel(f'{self.start_time}:')
             self.start_time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
             self.start_time_label_font = self.start_time_label.font()
             self.start_time_label_font.setUnderline(True)
             self.start_time_label.setFont(self.start_time_label_font)
-            self.task_label = QLabel(f"  {self.task.text()}")
+            self.task_label = QLabel(f"  {self.task.text()}         ")
             self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
             self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
             self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
@@ -112,20 +141,15 @@ class MyWidget(QMainWindow):
                 [self.start_time_label, self.task_label, self.tag_label, self.color_label, self.time_label])
             self.reversed_list = self.history_list[::-1]
             for line in self.reversed_list:
-                print(line)
                 for label in line:
-                    print(label)
-                    print(self.reversed_list.index(line))
-                    print(line.index(label))
                     self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
-
-            self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
             self.task.setText('')
             self.tag.setText('')
             if not self.no_color.isChecked():
                 self.no_color.toggle()
             self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
-            self.scroll_area.setWidget(self.out_widget)
+            self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+            self.scroll_area.setWidget(self.scrollAreaWidgetContents)
             self.scroll_area.show()
 
     def no_color_clicked(self):
