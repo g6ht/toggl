@@ -71,15 +71,31 @@ class MyWidget(QMainWindow):
     # кнопка цвета тогглд есть цвет есть
     # не скроллится
     def newtask(self):  # очищение таск при выводе
-        if self.no_color.isChecked():
-            self.color = ''
-            # и убрать цвет с надписи
-            print('no color')
-        else:
-            print(self.color)
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
-        elif '' != self.tag.text() and '' != self.color:
+        else:
+
+            if self.no_color.isChecked():
+                self.color_label = QLabel('○')
+                self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
+                # и убрать цвет с надписи
+                print('no color')
+            else:
+                self.color_label = QLabel(f'<h1 style="color: {self.color};">●')
+                self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
+                                                    color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
+                self.color_label.setGraphicsEffect(self.shadow)
+                print(self.color)
+
+            if '' == self.tag.text():
+                self.tag_label = QLabel(self.tag.text())
+            else:
+                self.tag_label = QLabel(f"#{self.tag.text()}")
+                self.tag_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
+                self.tag_label_font = self.tag_label.font()
+                self.tag_label_font.setItalic(True)
+                self.tag_label.setFont(self.tag_label_font)
             self.out_widget = QWidget(self)
             self.out_widget.setFixedHeight(400)
             self.out_widget.setFixedWidth(900)
@@ -92,17 +108,7 @@ class MyWidget(QMainWindow):
             self.start_time_label.setFont(self.start_time_label_font)
             self.task_label = QLabel(f"  {self.task.text()}")
             self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label = QLabel(f"#{self.tag.text()}")
-            self.tag_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label_font = self.tag_label.font()
-            self.tag_label_font.setItalic(True)
-            self.tag_label.setFont(self.tag_label_font)
             print('до цвета все хорошо')
-            self.color_label = QLabel(f'<h1 style="color: {self.color};">●')
-            self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-            self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                    color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
-            self.color_label.setGraphicsEffect(self.shadow)
             self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
             self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
             self.history_list.append(
@@ -117,112 +123,11 @@ class MyWidget(QMainWindow):
                     print(line.index(label))
                     self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
 
-        elif '' == self.tag.text() and '' != self.color:
-            self.out_widget = QWidget(self)
-            self.out_widget.setFixedHeight(400)
-            self.out_widget.setFixedWidth(900)
-            self.out_widget.setLayout(self.grid)
-            print('== !=')
-            self.start_time_label = QLabel(f'{self.start_time}:')
-            self.start_time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.start_time_label_font = self.start_time_label.font()
-            self.start_time_label_font.setUnderline(True)
-            self.start_time_label.setFont(self.start_time_label_font)
-            self.task_label = QLabel(f"  {self.task.text()}")
-            self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label = QLabel(self.tag.text())
-            self.tag_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label_font = self.tag_label.font()
-            self.tag_label_font.setItalic(True)
-            self.tag_label.setFont(self.tag_label_font)
-            self.color_label = QLabel(f'<h1 style="color: {self.color};">●')
-            self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-            self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                    color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
-            self.color_label.setGraphicsEffect(self.shadow)
-            self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
-            self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.history_list.append(
-                [self.start_time_label, self.task_label, self.tag_label, self.color_label, self.time_label])
-            self.reversed_list = self.history_list[::-1]
-            for line in self.reversed_list:
-                print(line)
-                for label in line:
-                    print(label)
-                    print(self.reversed_list.index(line))
-                    print(line.index(label))
-                    self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
+            self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+            print(self.out_widget)
 
-        elif '' != self.tag.text() and '' == self.color:
-            self.out_widget = QWidget(self)
-            self.out_widget.setFixedHeight(400)
-            self.out_widget.setFixedWidth(900)
-            self.out_widget.setLayout(self.grid)
-            print('!= ==')
-            self.start_time_label = QLabel(f'{self.start_time}:')
-            self.start_time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.start_time_label_font = self.start_time_label.font()
-            self.start_time_label_font.setUnderline(True)
-            self.start_time_label.setFont(self.start_time_label_font)
-            self.task_label = QLabel(f"  {self.task.text()}")
-            self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label = QLabel(f"#{self.tag.text()}")
-            self.tag_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label_font = self.tag_label.font()
-            self.tag_label_font.setItalic(True)
-            self.tag_label.setFont(self.tag_label_font)
-            self.color_label = QLabel('○')
-            self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
-            self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
-            self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.history_list.append(
-                [self.start_time_label, self.task_label, self.tag_label, self.color_label, self.time_label])
-            self.reversed_list = self.history_list[::-1]
-            for line in self.reversed_list:
-                print(line)
-                for label in line:
-                    print(label)
-                    print(self.reversed_list.index(line))
-                    print(line.index(label))
-                    self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
-        elif '' == self.tag.text() and '' == self.color:
-            self.out_widget = QWidget(self)
-            self.out_widget.setFixedHeight(400)
-            self.out_widget.setFixedWidth(900)
-            self.out_widget.setLayout(self.grid)
-            print('== ==')
-            self.start_time_label = QLabel(f'{self.start_time}:')
-            self.start_time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.start_time_label_font = self.start_time_label.font()
-            self.start_time_label_font.setUnderline(True)
-            self.start_time_label.setFont(self.start_time_label_font)
-            self.task_label = QLabel(f"  {self.task.text()}")
-            self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label = QLabel(self.tag.text())
-            self.tag_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.tag_label_font = self.tag_label.font()
-            self.tag_label_font.setItalic(True)
-            self.tag_label.setFont(self.tag_label_font)
-            self.color_label = QLabel('○')
-            self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
-            self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
-            self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.history_list.append(
-                [self.start_time_label, self.task_label, self.tag_label, self.color_label, self.time_label])
-            self.reversed_list = self.history_list[::-1]
-            for line in self.reversed_list:
-                print(line)
-                for label in line:
-                    print(label)
-                    print(self.reversed_list.index(line))
-                    print(line.index(label))
-                    self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
-
-        self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-        print(self.out_widget)
-
-        self.scroll_area.setWidget(self.out_widget)
-        self.scroll_area.show()
+            self.scroll_area.setWidget(self.out_widget)
+            self.scroll_area.show()
 
     def color_selection(self):
         self.radiocounter += 1
@@ -231,7 +136,7 @@ class MyWidget(QMainWindow):
             self.color = color.name()
             print(self.color)
             self.selected_color.setStyleSheet(f"color: {color.name()}")
-            if self.radiocounter == 1:
+            if self.radiocounter % 2 == 1: # не работает
                 self.no_color.toggle()
         except TypeError:
             self.error_dialog = QErrorMessage()
