@@ -1,8 +1,7 @@
-from PyQt5 import uic, QtGui, QtCore  # Импортируем uic
-from PyQt5.QtWidgets import QMainWindow, QPushButton, QRadioButton, QWidget, QLabel, QApplication, \
-    QLineEdit, QScrollArea, QButtonGroup, QColorDialog, QErrorMessage, QHBoxLayout, QGridLayout, \
-    QListWidget, QGraphicsDropShadowEffect
-from PyQt5.QtCore import pyqtSignal, pyqtSlot, QTimer, QRect
+from PyQt5 import uic, QtGui, QtCore
+from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea,\
+    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect
+from PyQt5.QtCore import QTimer
 import time, datetime
 
 import sys
@@ -11,7 +10,7 @@ import sys
 class MyWidget(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Ultra demo")
+        self.setWindowTitle("Toggl")
         uic.loadUi('toggl_app.ui', self)
         self.grid = QGridLayout()
 
@@ -22,7 +21,6 @@ class MyWidget(QMainWindow):
         self.scroll_area.move(26, 180)
         self.scroll_area.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
 
-        self.line = ''
         self.color = ''
         self.start_text = QLabel(self)
         self.start_text.setText('Тут пока ничего нет...')
@@ -32,9 +30,9 @@ class MyWidget(QMainWindow):
         self.tag.move(474, 50)
         self.stop.move(790, 47)
         self.start.move(750, 39)
-        self.radiocounter = 0
 
-        self.no_color.toggle()  # если кликнута убрать надпись внизу
+        self.no_color.toggle()
+        self.no_color.clicked.connect(self.no_color_clicked)
         self.select_color.clicked.connect(self.color_selection)
 
         self.time = 0
@@ -52,9 +50,16 @@ class MyWidget(QMainWindow):
         self.stop.clicked.connect(self.reset)
 
     def current_time(self):
-        self.start_time = datetime.datetime.now()
-        self.start_time = self.start_time.strftime("%d-%m-%Y %H:%M")
-        print(self.start_time)
+        if '' == self.task.text():
+            self.error_dialog = QErrorMessage()
+            self.error_dialog.showMessage('Вам нужно обязательно ввести название задачи.')
+            self.error_dialog.show()
+            self.timerUp.stop()
+            self.reset()
+            return
+        else:
+            self.start_time = datetime.datetime.now()
+            self.start_time = self.start_time.strftime("%d-%m-%Y %H:%M")
 
     def updateUptime(self):
         self.time += 1
@@ -68,26 +73,20 @@ class MyWidget(QMainWindow):
         self.time = 0
         self.settimer(self.time)
 
-    # кнопка цвета тогглд есть цвет есть
     # не скроллится
-    def newtask(self):  # очищение таск при выводе
+    def newtask(self):
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
         else:
-
             if self.no_color.isChecked():
                 self.color_label = QLabel('○')
                 self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
-                # и убрать цвет с надписи
-                print('no color')
             else:
                 self.color_label = QLabel(f'<h1 style="color: {self.color};">●')
                 self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
                 self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
                                                     color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
                 self.color_label.setGraphicsEffect(self.shadow)
-                print(self.color)
-
             if '' == self.tag.text():
                 self.tag_label = QLabel(self.tag.text())
             else:
@@ -100,7 +99,6 @@ class MyWidget(QMainWindow):
             self.out_widget.setFixedHeight(400)
             self.out_widget.setFixedWidth(900)
             self.out_widget.setLayout(self.grid)
-            print('!= !=')
             self.start_time_label = QLabel(f'{self.start_time}:')
             self.start_time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
             self.start_time_label_font = self.start_time_label.font()
@@ -108,13 +106,11 @@ class MyWidget(QMainWindow):
             self.start_time_label.setFont(self.start_time_label_font)
             self.task_label = QLabel(f"  {self.task.text()}")
             self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            print('до цвета все хорошо')
             self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
             self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
             self.history_list.append(
                 [self.start_time_label, self.task_label, self.tag_label, self.color_label, self.time_label])
             self.reversed_list = self.history_list[::-1]
-            print('до цикла все ок')
             for line in self.reversed_list:
                 print(line)
                 for label in line:
@@ -124,19 +120,23 @@ class MyWidget(QMainWindow):
                     self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
 
             self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            print(self.out_widget)
-
+            self.task.setText('')
+            self.tag.setText('')
+            if not self.no_color.isChecked():
+                self.no_color.toggle()
+            self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
             self.scroll_area.setWidget(self.out_widget)
             self.scroll_area.show()
 
+    def no_color_clicked(self):
+        self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
+
     def color_selection(self):
-        self.radiocounter += 1
         color = QColorDialog.getColor()
         try:
             self.color = color.name()
-            print(self.color)
             self.selected_color.setStyleSheet(f"color: {color.name()}")
-            if self.radiocounter % 2 == 1: # не работает
+            if self.no_color.isChecked():
                 self.no_color.toggle()
         except TypeError:
             self.error_dialog = QErrorMessage()
