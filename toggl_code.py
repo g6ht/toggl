@@ -1,12 +1,115 @@
 from PyQt5 import uic, QtGui, QtCore
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea,\
-    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QHBoxLayout, QVBoxLayout
+    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect
 from PyQt5.QtCore import QTimer
 import time, datetime
 import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
+import sqlite3
 
 import sys
+
+
+class Autorization(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('toggl_authorization.ui', self)
+        self.setWindowTitle("Авторизация")
+        self.logged_in = False
+
+        self.log_in_button.clicked.connect(self.log_in)
+        self.sign_up_button.clicked.connect(self.sign_up)
+        self.next_button.clicked.connect(self.next_window)
+
+    def next_window(self):
+        if self.logged_in:
+            self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
+            self.close()
+            toggl.show()
+        else:
+            self.error_message_label.setText('Сначала войдите в аккаунт.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+
+    def log_in(self):  # вход!!
+        login_flag = 0
+        password_flag = 0
+        print('Происходит вход')
+        user_login = self.login.text()
+        user_password = self.password.text()
+
+        if user_login == '':
+            self.error_message_label.setText('Введите логин.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+            return
+        if user_password == '':
+            self.error_message_label.setText('Введите пароль.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+            return
+
+        for login in cursor.execute("SELECT login FROM users"):
+            if user_login != login[0]:
+                print("Такого логина нет")
+                self.error_message_label.setText('Такого логина не существует. Попробуйте снова.')
+                self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+                login_flag = 1
+            else:
+                print('Такой логин нашелся')
+                self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
+                login_flag = 0
+                break
+        if login_flag == 1:
+            return
+        for login_password in cursor.execute("SELECT login, password FROM users"):
+            if user_login == login_password[0] and user_password != login_password[1]:
+                print("Неверный пароль")
+                self.error_message_label.setText('Неверный пароль. Попробуйте снова.')
+                self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+                password_flag = 1
+            elif user_login == login_password[0] and user_password == login_password[1]:
+                print('Верный пароль')
+                self.error_message_label.setText('Вы успешно вошли в аккаунт.')
+                self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
+                password_flag = 0
+                self.logged_in = True
+                self.current_login = user_login
+                self.current_password = user_password
+                break
+        if password_flag == 1:
+            return
+
+    def sign_up(self): # регистрация
+        print("Происходит регистрация")
+        user_login = self.login.text()
+        user_password = self.password.text()
+        data = ''  # видимо нельзя совать списки
+
+        if len(self.login.text()) < 3:
+            print('Короткий логин')
+            self.error_message_label.setText('Логин слишком короткий. Попробуйте снова.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+            return
+
+        if len(self.password.text()) < 6:
+            print('Короткий пароль')
+            self.error_message_label.setText('Пароль слишком короткий. Попробуйте снова.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+            return
+
+        self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
+        cursor.execute(f"SELECT login FROM users WHERE login = '{user_login}'")
+
+        if cursor.fetchone() is None:
+            cursor.execute(f"INSERT INTO users VALUES (?, ?, ?)", (user_login, user_password, data))
+            data_base.commit()
+            print('Зарегистрировано')
+            self.error_message_label.setText('Вы успешно зарегистрированы.')
+            self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
+        else:
+            print('Такая запись уже имеется')
+            self.error_message_label.setText('Такой логин уже существует. Попробуйте снова.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+            return
+
 
 class InsightsWindow(QWidget):
     def __init__(self):
@@ -14,11 +117,11 @@ class InsightsWindow(QWidget):
         uic.loadUi('toggl_insights.ui', self)
 
 
-class MyWidget(QMainWindow):
+class MyWidget(QMainWindow):    # надо сразу выводить список задач из базы данных
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Toggl")
         uic.loadUi('toggl_app.ui', self)
+        self.setWindowTitle("Toggl")
 
         self.history_list = []
 
@@ -169,7 +272,19 @@ class MyWidget(QMainWindow):
 
 
 if __name__ == '__main__':
+    data_base = sqlite3.connect('toggl_db.db')
+    cursor = data_base.cursor()
+    cursor.execute("""CREATE TABLE IF NOT EXISTS users (
+        login TEXT,
+        password TEXT,
+        data LIST
+    )""")
+    data_base.commit()
+    for value in cursor.execute("SELECT * FROM users"):
+        print(value)
+
     app = QApplication([])
-    ex = MyWidget()
-    ex.show()
+    authorization = Autorization()
+    authorization.show()
+    toggl = MyWidget()
     sys.exit(app.exec_())
