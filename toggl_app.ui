@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1053</width>
-    <height>708</height>
+    <width>1068</width>
+    <height>676</height>
    </rect>
   </property>
   <property name="palette">
@@ -1455,10 +1455,10 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>0</x>
-      <y>10</y>
-      <width>1081</width>
-      <height>661</height>
+      <x>-10</x>
+      <y>-10</y>
+      <width>1091</width>
+      <height>671</height>
      </rect>
     </property>
     <property name="frameShape">
@@ -1541,7 +1541,7 @@
       <x>759</x>
       <y>50</y>
       <width>151</width>
-      <height>51</height>
+      <height>41</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -2885,7 +2885,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1053</width>
+     <width>1068</width>
      <height>26</height>
     </rect>
    </property>

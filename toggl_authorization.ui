@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>459</width>
-    <height>300</height>
+    <height>314</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -109,7 +109,7 @@
     <rect>
      <x>30</x>
      <y>230</y>
-     <width>171</width>
+     <width>151</width>
      <height>28</height>
     </rect>
    </property>
@@ -129,9 +129,9 @@
   <widget class="QPushButton" name="sign_up_button">
    <property name="geometry">
     <rect>
-     <x>250</x>
+     <x>190</x>
      <y>230</y>
-     <width>171</width>
+     <width>151</width>
      <height>31</height>
     </rect>
    </property>
@@ -167,22 +167,30 @@
   <widget class="QPushButton" name="next_button">
    <property name="geometry">
     <rect>
-     <x>410</x>
-     <y>190</y>
-     <width>41</width>
-     <height>28</height>
+     <x>350</x>
+     <y>230</y>
+     <width>71</width>
+     <height>31</height>
     </rect>
    </property>
+   <property name="font">
+    <font>
+     <family>Bahnschrift Light SemiCondensed</family>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">border-radius: 10px; border: 3px solid white;  background-color: rgb(155, 155, 155)</string>
+   </property>
    <property name="text">
-    <string>next</string>
+    <string>➜</string>
    </property>
   </widget>
   <widget class="QLabel" name="error_message_label">
    <property name="geometry">
     <rect>
-     <x>50</x>
+     <x>30</x>
      <y>189</y>
-     <width>351</width>
+     <width>391</width>
      <height>31</height>
     </rect>
    </property>

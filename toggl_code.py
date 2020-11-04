@@ -1,5 +1,5 @@
 from PyQt5 import uic, QtGui, QtCore
-from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea,\
+from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea, \
     QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect
 from PyQt5.QtCore import QTimer
 import time, datetime
@@ -16,6 +16,7 @@ class Autorization(QWidget):
         uic.loadUi('toggl_authorization.ui', self)
         self.setWindowTitle("Авторизация")
         self.logged_in = False
+        self.setFixedSize(459, 314)
 
         self.log_in_button.clicked.connect(self.log_in)
         self.sign_up_button.clicked.connect(self.sign_up)
@@ -26,11 +27,12 @@ class Autorization(QWidget):
             self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
             self.close()
             toggl.show()
+            toggl.start_func()
         else:
             self.error_message_label.setText('Сначала войдите в аккаунт.')
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
 
-    def log_in(self):  # вход!!
+    def log_in(self):  # вход
         login_flag = 0
         password_flag = 0
         print('Происходит вход')
@@ -71,17 +73,17 @@ class Autorization(QWidget):
                 self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
                 password_flag = 0
                 self.logged_in = True
-                self.current_login = user_login
-                self.current_password = user_password
+                global current_login
+                current_login = user_login
                 break
         if password_flag == 1:
             return
 
-    def sign_up(self): # регистрация
+    def sign_up(self):  # регистрация
         print("Происходит регистрация")
         user_login = self.login.text()
         user_password = self.password.text()
-        data = ''  # видимо нельзя совать списки
+        data = ''
 
         if len(self.login.text()) < 3:
             print('Короткий логин')
@@ -117,24 +119,14 @@ class InsightsWindow(QWidget):
         uic.loadUi('toggl_insights.ui', self)
 
 
-class MyWidget(QMainWindow):    # надо сразу выводить список задач из базы данных
+class MyWidget(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_app.ui', self)
         self.setWindowTitle("Toggl")
-
-        self.history_list = []
-
-        self.scroll_area = QScrollArea(self)
-        self.scroll_area.resize(1005, 471)
-        self.scroll_area.move(26, 180)
-        self.scroll_area.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
+        self.setFixedSize(1062, 676)
 
         self.color = ''
-        self.start_text = QLabel(self)
-        self.start_text.setText('Тут пока ничего нет...')
-        self.start_text.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 20))
-        self.scroll_area.setWidget(self.start_text)
         self.stop.move(790, 47)
         self.start.move(750, 39)
         self.select_color.move(640, 60)
@@ -159,6 +151,72 @@ class MyWidget(QMainWindow):    # надо сразу выводить спис�
         self.stop.clicked.connect(self.newtask)
         self.stop.clicked.connect(self.reset)
 
+    def start_func(self):
+        cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
+        data = f"{cursor.fetchone()[0]}"
+        if data == '':
+            self.history_list = []
+            self.scroll_area = QScrollArea(self)
+            self.scroll_area.resize(1005, 471)
+            self.scroll_area.move(26, 180)
+            self.scroll_area.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
+            self.start_text = QLabel(self)
+            self.start_text.setText('Тут пока ничего нет...')
+            self.start_text.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 20))
+            self.scroll_area.setWidget(self.start_text)
+            self.scroll_area.show()
+        else:
+            self.history_list = []
+            for task in data.split('\n'):
+                labels = []
+                if len(task) == 0:
+                    continue
+                for label in task.split('|'):
+                    out_label = QLabel(label.strip())
+                    if label == task.split('|')[0]:
+                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
+                        out_label_font = out_label.font()
+                        out_label_font.setUnderline(True)
+                        out_label.setFont(out_label_font)
+                    elif label == task.split('|')[1]:
+                        out_label.setText(f"  {label}         ")
+                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
+                    elif label == task.split('|')[2]:
+                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
+                        out_label_font = out_label.font()
+                        out_label_font.setItalic(True)
+                        out_label.setFont(out_label_font)
+                    elif label == task.split('|')[3]:
+                        if '○' in label:
+                            out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
+                            shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
+                                                                    color=QtGui.QColor("#000000"),
+                                                                    offset=QtCore.QPointF(0.0, 0.0))
+                            out_label.setGraphicsEffect(shadow)
+                        else:
+                            out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                            shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
+                                                                    color=QtGui.QColor("#000000"),
+                                                                    offset=QtCore.QPointF(0.0, 0.0))
+                            out_label.setGraphicsEffect(shadow)
+                    elif label == task.split('|')[4]:
+                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
+                    labels.append(out_label)
+                self.history_list.append(labels)
+            self.scroll_area = QScrollArea(self)
+            self.scroll_area.resize(1005, 471)
+            self.scroll_area.move(26, 180)
+            self.scrollAreaWidgetContents = QWidget()
+            self.scrollAreaWidgetContents.setMinimumSize(900, 400)
+            self.grid = QGridLayout(self.scrollAreaWidgetContents)
+            self.reversed_list = self.history_list[::-1]
+            for line in self.reversed_list:
+                for label in line:
+                    self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
+            self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+            self.scroll_area.setWidget(self.scrollAreaWidgetContents)
+            self.scroll_area.show()
+
     def view_insights(self):
         self.date_list = []
         self.time_list = []
@@ -170,14 +228,14 @@ class MyWidget(QMainWindow):    # надо сразу выводить спис�
             self.insights_window.resize(800, 350)
             self.insights_window.setWindowTitle('Статистика')
             plt1 = self.insights_window.addPlot()
-            for data_list in self.history_list: # надо создать словарь, тут херня
-                if not data_list[0].text()[:5] in self.date_list:   # и вообще этот модуль стремный
+            for data_list in self.history_list:  # надо создать словарь, тут херня
+                if not data_list[0].text()[:5] in self.date_list:  # и вообще этот модуль стремный
                     self.date_list.append(data_list[0].text()[:5])
-                self.time_list.append(data_list[-1].text())   # надо прибавлять часы и делать статистику по дням
+                self.time_list.append(data_list[-1].text())  # надо прибавлять часы и делать статистику по дням
                 print(data_list[-1].text())
                 print(data_list[0].text()[:5])
-            x = self.date_list # список дней
-            y = self.time_list # список часов
+            x = self.date_list  # список дней
+            y = self.time_list  # список часов
 
             plt1.plot(x, y, stepMode=True, fillLevel=0, filloutline=True, brush=(200, 0, 255, 150))
         self.insights_window.show()
@@ -205,6 +263,7 @@ class MyWidget(QMainWindow):    # надо сразу выводить спис�
     def reset(self):
         self.time = 0
         self.settimer(self.time)
+
     # сортировка по дате(?)
     # диаграмма продуктивности
     def newtask(self):
@@ -217,11 +276,14 @@ class MyWidget(QMainWindow):    # надо сразу выводить спис�
             if self.no_color.isChecked():
                 self.color_label = QLabel('○')
                 self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
+                self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
+                                                        color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
+                self.color_label.setGraphicsEffect(self.shadow)
             else:
                 self.color_label = QLabel(f'<h1 style="color: {self.color};">●')
                 self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
                 self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                    color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
+                                                        color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
                 self.color_label.setGraphicsEffect(self.shadow)
             if '' == self.tag.text():
                 self.tag_label = QLabel(self.tag.text())
@@ -254,6 +316,12 @@ class MyWidget(QMainWindow):    # надо сразу выводить спис�
             self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
             self.scroll_area.setWidget(self.scrollAreaWidgetContents)
             self.scroll_area.show()
+            self.data = f"{self.start_time}| {self.task_label.text().strip()}| {self.tag_label.text()}|" \
+                        f" {self.color_label.text()}| {self.time_label.text()}\n"
+            cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
+            data = cursor.fetchone()[0] + self.data
+            cursor.execute(f"UPDATE users SET data = '{data}' WHERE login = '{current_login}'")
+            data_base.commit()
 
     def no_color_clicked(self):
         self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
@@ -277,12 +345,13 @@ if __name__ == '__main__':
     cursor.execute("""CREATE TABLE IF NOT EXISTS users (
         login TEXT,
         password TEXT,
-        data LIST
+        data TEXT
     )""")
     data_base.commit()
     for value in cursor.execute("SELECT * FROM users"):
         print(value)
 
+    current_login = ''
     app = QApplication([])
     authorization = Autorization()
     authorization.show()
