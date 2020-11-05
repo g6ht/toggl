@@ -1,26 +1,34 @@
 from PyQt5 import uic, QtGui, QtCore
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea, \
-    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect
+    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QLineEdit
 from PyQt5.QtCore import QTimer
 import time, datetime
-import pyqtgraph as pg
 from pyqtgraph.Qt import QtCore, QtGui
 import sqlite3
 
 import sys
 
 
-class Autorization(QWidget):
+class Authorization(QWidget):
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_authorization.ui', self)
         self.setWindowTitle("Авторизация")
         self.logged_in = False
-        self.setFixedSize(459, 314)
+        self.setFixedSize(476, 314)
 
         self.log_in_button.clicked.connect(self.log_in)
         self.sign_up_button.clicked.connect(self.sign_up)
         self.next_button.clicked.connect(self.next_window)
+        self.eye_button.clicked.connect(self.eye)
+
+    def eye(self):
+        if self.eye_button.isChecked():
+            self.eye_button.setStyleSheet("background-color: rgb(195, 195, 195)")
+            self.password.setEchoMode(QLineEdit.Normal)
+        else:
+            self.eye_button.setStyleSheet("background-color: rgb(127, 127, 127)")
+            self.password.setEchoMode(QLineEdit.Password)
 
     def next_window(self):
         if self.logged_in:
@@ -33,9 +41,7 @@ class Autorization(QWidget):
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
 
     def log_in(self):  # вход
-        login_flag = 0
         password_flag = 0
-        print('Происходит вход')
         user_login = self.login.text()
         user_password = self.password.text()
 
@@ -48,51 +54,40 @@ class Autorization(QWidget):
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
             return
 
-        for login in cursor.execute("SELECT login FROM users"):
-            if user_login != login[0]:
-                print("Такого логина нет")
-                self.error_message_label.setText('Такого логина не существует. Попробуйте снова.')
-                self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
-                login_flag = 1
-            else:
-                print('Такой логин нашелся')
-                self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
-                login_flag = 0
-                break
-        if login_flag == 1:
+        logins = [login[0] for login in cursor.execute("SELECT login FROM users")]
+        if user_login not in logins:
+            self.error_message_label.setText('Такого логина не существует. Попробуйте снова.')
+            self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
             return
-        for login_password in cursor.execute("SELECT login, password FROM users"):
-            if user_login == login_password[0] and user_password != login_password[1]:
-                print("Неверный пароль")
-                self.error_message_label.setText('Неверный пароль. Попробуйте снова.')
-                self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
-                password_flag = 1
-            elif user_login == login_password[0] and user_password == login_password[1]:
-                print('Верный пароль')
-                self.error_message_label.setText('Вы успешно вошли в аккаунт.')
-                self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
-                password_flag = 0
-                self.logged_in = True
-                global current_login
-                current_login = user_login
-                break
-        if password_flag == 1:
-            return
+        else:
+            self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
+            for login_password in cursor.execute("SELECT login, password FROM users"):
+                if user_login == login_password[0] and user_password != login_password[1]:
+                    self.error_message_label.setText('Неверный пароль. Попробуйте снова.')
+                    self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
+                    password_flag = 1
+                elif user_login == login_password[0] and user_password == login_password[1]:
+                    self.error_message_label.setText('Вы успешно вошли в аккаунт.')
+                    self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
+                    password_flag = 0
+                    self.logged_in = True
+                    global current_login
+                    current_login = user_login
+                    break
+            if password_flag == 1:
+                return
 
     def sign_up(self):  # регистрация
-        print("Происходит регистрация")
         user_login = self.login.text()
         user_password = self.password.text()
         data = ''
 
         if len(self.login.text()) < 3:
-            print('Короткий логин')
             self.error_message_label.setText('Логин слишком короткий. Попробуйте снова.')
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
             return
 
         if len(self.password.text()) < 6:
-            print('Короткий пароль')
             self.error_message_label.setText('Пароль слишком короткий. Попробуйте снова.')
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
             return
@@ -103,11 +98,9 @@ class Autorization(QWidget):
         if cursor.fetchone() is None:
             cursor.execute(f"INSERT INTO users VALUES (?, ?, ?)", (user_login, user_password, data))
             data_base.commit()
-            print('Зарегистрировано')
             self.error_message_label.setText('Вы успешно зарегистрированы.')
             self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
         else:
-            print('Такая запись уже имеется')
             self.error_message_label.setText('Такой логин уже существует. Попробуйте снова.')
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
             return
@@ -117,9 +110,74 @@ class InsightsWindow(QWidget):
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_insights.ui', self)
+        self.date_list = {}
+        self.list_of_values = []
+        cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
+        data = f"{cursor.fetchone()[0]}"
+        for line in data.split('\n'):
+            if len(line) == 0:
+                continue
+            value = line.split("|")[0][:10]
+            time_value = line.split("|")[-1].strip()
+            if value not in self.date_list.keys():
+                self.date_list[value] = f'{time_value}'
+            else:
+                previous_time_value = self.date_list[value]
+                previous_hours_value = int(previous_time_value[:2])
+                hours_value = int(time_value[:2])
+                previous_minutes_value = int(previous_time_value[3:5])
+                minutes_value = int(time_value[3:5])
+                previous_seconds_value = int(previous_time_value[6:])
+                seconds_value = int(time_value[6:])
+                hours_value = str(hours_value + previous_hours_value)
+                minutes_value = str(minutes_value + previous_minutes_value)
+                seconds_value = str(seconds_value + previous_seconds_value)
+                if int(seconds_value) > 59:
+                    minutes_value = str(int(minutes_value) + 1)
+                    seconds_value = '00'
+                if int(minutes_value) > 59:
+                    hours_value = str(int(hours_value) + 1)
+                    minutes_value = '00'
+                if len(hours_value) == 1:
+                    hours_value = f'0{hours_value}'
+                if len(minutes_value) == 1:
+                    minutes_value = f'0{minutes_value}'
+                if len(seconds_value) == 1:
+                    seconds_value = f'0{seconds_value}'
+                time_value = f'{hours_value}:{minutes_value}:{seconds_value}'
+                self.date_list[value] = f'{time_value}'
+
+        if not toggl.history_list:
+            self.insights_label.setText('Нет данных для составления вашей статистики.')
+            self.insights_label.move(10, 150)
+            self.insights_label_2.setStyleSheet("color: rgb(195, 195, 195)")
+            self.insights_label_3.setStyleSheet("color: rgb(195, 195, 195)")
+        else:
+            self.insights_label.setText('Ваша статистика:')
+            self.insights_label.move(10, 10)
+            self.insights_label_2.setStyleSheet("color: rgb(0, 0, 0)")
+            self.insights_label_3.setStyleSheet("color: rgb(0, 0, 0)")
+            self.insights_scroll_area = QScrollArea(self)
+            self.insights_scroll_area.resize(530, 310)
+            self.insights_scroll_area.move(20, 75)
+            self.scrollAreaWidgetContents1 = QWidget()
+            self.scrollAreaWidgetContents1.setMinimumSize(510, 280)
+            self.insights_grid = QGridLayout(self.scrollAreaWidgetContents1)
+            n = 0
+            for dates, times in self.date_list.items():
+                date_label = QLabel(dates)
+                date_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                time_label = QLabel(times)
+                time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                self.insights_grid.addWidget(date_label, n, 0)
+                self.insights_grid.addWidget(time_label, n, 1)
+                n += 1
+            self.insights_scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+            self.insights_scroll_area.setWidget(self.scrollAreaWidgetContents1)
+            self.insights_scroll_area.show()
 
 
-class MyWidget(QMainWindow):
+class MyWidget(QMainWindow):  # добавить инглиш
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_app.ui', self)
@@ -190,14 +248,14 @@ class MyWidget(QMainWindow):
                         if '○' in label:
                             out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
                             shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                                    color=QtGui.QColor("#000000"),
-                                                                    offset=QtCore.QPointF(0.0, 0.0))
+                                                               color=QtGui.QColor("#000000"),
+                                                               offset=QtCore.QPointF(0.0, 0.0))
                             out_label.setGraphicsEffect(shadow)
                         else:
                             out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
                             shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                                    color=QtGui.QColor("#000000"),
-                                                                    offset=QtCore.QPointF(0.0, 0.0))
+                                                               color=QtGui.QColor("#000000"),
+                                                               offset=QtCore.QPointF(0.0, 0.0))
                             out_label.setGraphicsEffect(shadow)
                     elif label == task.split('|')[4]:
                         out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
@@ -218,26 +276,9 @@ class MyWidget(QMainWindow):
             self.scroll_area.show()
 
     def view_insights(self):
-        self.date_list = []
-        self.time_list = []
-        if self.history_list == []:
-            self.insights_window = InsightsWindow()
-            self.insights_window.insights_label.setText('Нет данных для составления вашей статистики.')
-        else:
-            self.insights_window = pg.GraphicsWindow()
-            self.insights_window.resize(800, 350)
-            self.insights_window.setWindowTitle('Статистика')
-            plt1 = self.insights_window.addPlot()
-            for data_list in self.history_list:  # надо создать словарь, тут херня
-                if not data_list[0].text()[:5] in self.date_list:  # и вообще этот модуль стремный
-                    self.date_list.append(data_list[0].text()[:5])
-                self.time_list.append(data_list[-1].text())  # надо прибавлять часы и делать статистику по дням
-                print(data_list[-1].text())
-                print(data_list[0].text()[:5])
-            x = self.date_list  # список дней
-            y = self.time_list  # список часов
-
-            plt1.plot(x, y, stepMode=True, fillLevel=0, filloutline=True, brush=(200, 0, 255, 150))
+        self.insights_window = InsightsWindow()
+        self.insights_window.setWindowTitle('Статистика')
+        self.insights_window.setFixedSize(570, 385)
         self.insights_window.show()
 
     def current_time(self):
@@ -264,8 +305,6 @@ class MyWidget(QMainWindow):
         self.time = 0
         self.settimer(self.time)
 
-    # сортировка по дате(?)
-    # диаграмма продуктивности
     def newtask(self):
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
@@ -348,12 +387,12 @@ if __name__ == '__main__':
         data TEXT
     )""")
     data_base.commit()
-    for value in cursor.execute("SELECT * FROM users"):
-        print(value)
+    for user in cursor.execute("SELECT * FROM users"):
+        print(user)
 
     current_login = ''
     app = QApplication([])
-    authorization = Autorization()
+    authorization = Authorization()
     authorization.show()
     toggl = MyWidget()
     sys.exit(app.exec_())

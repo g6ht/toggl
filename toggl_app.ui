@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1068</width>
+    <width>1071</width>
     <height>676</height>
    </rect>
   </property>
@@ -435,9 +435,9 @@
    <widget class="QLineEdit" name="task">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>20</x>
       <y>60</y>
-      <width>441</width>
+      <width>451</width>
       <height>31</height>
      </rect>
     </property>
@@ -460,20 +460,22 @@
    <widget class="QLabel" name="label_2">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>10</x>
       <y>20</y>
-      <width>161</width>
+      <width>191</width>
       <height>31</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>Bahnschrift Light SemiCondensed</family>
-      <pointsize>12</pointsize>
+      <pointsize>14</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border-radius: 15px; border: 3px solid white;  background-color: rgb(195, 195, 195)</string>
+     <string notr="true">color: white</string>
     </property>
     <property name="text">
      <string>Текущая задача:</string>
@@ -485,20 +487,22 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>480</x>
+      <x>440</x>
       <y>20</y>
-      <width>71</width>
+      <width>111</width>
       <height>31</height>
      </rect>
     </property>
     <property name="font">
      <font>
       <family>Bahnschrift Light SemiCondensed</family>
-      <pointsize>12</pointsize>
+      <pointsize>14</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border-radius: 15px; border: 3px solid white;  background-color: rgb(195, 195, 195)</string>
+     <string notr="true">color: white</string>
     </property>
     <property name="text">
      <string>Тег:</string>
@@ -1414,11 +1418,13 @@
     <property name="font">
      <font>
       <family>Bahnschrift Light SemiCondensed</family>
-      <pointsize>12</pointsize>
+      <pointsize>14</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border-radius: 15px; border: 3px solid white;  background-color: rgb(195, 195, 195)</string>
+     <string notr="true">color: white</string>
     </property>
     <property name="text">
      <string>Время:</string>
@@ -1430,7 +1436,7 @@
    <widget class="QLabel" name="label_9">
     <property name="geometry">
      <rect>
-      <x>30</x>
+      <x>10</x>
       <y>120</y>
       <width>201</width>
       <height>51</height>
@@ -1440,10 +1446,12 @@
      <font>
       <family>Bahnschrift Light SemiCondensed</family>
       <pointsize>16</pointsize>
+      <weight>75</weight>
+      <bold>true</bold>
      </font>
     </property>
     <property name="styleSheet">
-     <string notr="true">border-radius: 25px; border: 3px solid white;  background-color: rgb(195, 195, 195)</string>
+     <string notr="true">color: white</string>
     </property>
     <property name="text">
      <string>История задач:</string>
@@ -1468,7 +1476,7 @@
      <string/>
     </property>
     <property name="pixmap">
-     <pixmap>../../OneDrive/Рабочий стол/дизайн готовый2.png</pixmap>
+     <pixmap>../../OneDrive/Рабочий стол/темныйфон.png</pixmap>
     </property>
    </widget>
    <widget class="QLineEdit" name="tag">
@@ -1541,7 +1549,7 @@
       <x>759</x>
       <y>50</y>
       <width>151</width>
-      <height>41</height>
+      <height>51</height>
      </rect>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
@@ -2885,7 +2893,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1068</width>
+     <width>1071</width>
      <height>26</height>
     </rect>
    </property>

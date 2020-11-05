@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>459</width>
+    <width>476</width>
     <height>314</height>
    </rect>
   </property>
@@ -16,8 +16,8 @@
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
-     <x>34</x>
-     <y>20</y>
+     <x>40</x>
+     <y>30</y>
      <width>401</width>
      <height>41</height>
     </rect>
@@ -35,7 +35,7 @@
   <widget class="QLabel" name="label_2">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>40</x>
      <y>90</y>
      <width>61</width>
      <height>31</height>
@@ -54,7 +54,7 @@
   <widget class="QLabel" name="label_3">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>40</x>
      <y>150</y>
      <width>61</width>
      <height>31</height>
@@ -73,7 +73,7 @@
   <widget class="QLineEdit" name="login">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>110</x>
      <y>90</y>
      <width>321</width>
      <height>31</height>
@@ -86,7 +86,7 @@
   <widget class="QLineEdit" name="password">
    <property name="geometry">
     <rect>
-     <x>100</x>
+     <x>110</x>
      <y>150</y>
      <width>321</width>
      <height>31</height>
@@ -107,7 +107,7 @@
   <widget class="QPushButton" name="log_in_button">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>40</x>
      <y>230</y>
      <width>151</width>
      <height>28</height>
@@ -129,7 +129,7 @@
   <widget class="QPushButton" name="sign_up_button">
    <property name="geometry">
     <rect>
-     <x>190</x>
+     <x>200</x>
      <y>230</y>
      <width>151</width>
      <height>31</height>
@@ -151,8 +151,8 @@
   <widget class="QLabel" name="label_4">
    <property name="geometry">
     <rect>
-     <x>-6</x>
-     <y>-5</y>
+     <x>0</x>
+     <y>0</y>
      <width>491</width>
      <height>321</height>
     </rect>
@@ -161,13 +161,13 @@
     <string/>
    </property>
    <property name="pixmap">
-    <pixmap>../../OneDrive/Рабочий стол/дизайн готовый2.png</pixmap>
+    <pixmap>../../OneDrive/Рабочий стол/темныйфон.png</pixmap>
    </property>
   </widget>
   <widget class="QPushButton" name="next_button">
    <property name="geometry">
     <rect>
-     <x>350</x>
+     <x>360</x>
      <y>230</y>
      <width>71</width>
      <height>31</height>
@@ -188,7 +188,7 @@
   <widget class="QLabel" name="error_message_label">
    <property name="geometry">
     <rect>
-     <x>30</x>
+     <x>40</x>
      <y>189</y>
      <width>391</width>
      <height>31</height>
@@ -210,7 +210,29 @@
     <set>Qt::AlignCenter</set>
    </property>
   </widget>
+  <widget class="QRadioButton" name="eye_button">
+   <property name="geometry">
+    <rect>
+     <x>410</x>
+     <y>150</y>
+     <width>51</width>
+     <height>31</height>
+    </rect>
+   </property>
+   <property name="font">
+    <font>
+     <pointsize>12</pointsize>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true"/>
+   </property>
+   <property name="text">
+    <string>👁</string>
+   </property>
+  </widget>
   <zorder>label_4</zorder>
+  <zorder>eye_button</zorder>
   <zorder>label</zorder>
   <zorder>label_2</zorder>
   <zorder>label_3</zorder>
