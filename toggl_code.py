@@ -1,6 +1,6 @@
 from PyQt5 import uic, QtGui, QtCore
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea, \
-    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QLineEdit
+    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QLineEdit, QCheckBox
 from PyQt5.QtCore import QTimer
 import time, datetime
 from pyqtgraph.Qt import QtCore, QtGui
@@ -81,6 +81,7 @@ class Authorization(QWidget):
         user_login = self.login.text()
         user_password = self.password.text()
         data = ''
+        plans = ''
 
         if len(self.login.text()) < 3:
             self.error_message_label.setText('Логин слишком короткий. Попробуйте снова.')
@@ -96,7 +97,7 @@ class Authorization(QWidget):
         cursor.execute(f"SELECT login FROM users WHERE login = '{user_login}'")
 
         if cursor.fetchone() is None:
-            cursor.execute(f"INSERT INTO users VALUES (?, ?, ?)", (user_login, user_password, data))
+            cursor.execute(f"INSERT INTO users VALUES (?, ?, ?, ?)", (user_login, user_password, data, plans))
             data_base.commit()
             self.error_message_label.setText('Вы успешно зарегистрированы.')
             self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
@@ -179,7 +180,123 @@ class InsightsWindow(QWidget):
             self.insights_scroll_area.show()
 
 
-class MyWidget(QMainWindow):  # добавить планы и напоминалки
+class PlansWindow(QWidget):
+    def __init__(self):
+        super().__init__()
+        uic.loadUi('toggl_plans.ui', self)
+        cursor.execute(f"SELECT plans FROM users WHERE login = '{current_login}'")
+        plans = f"{cursor.fetchone()[0]}"
+        self.plans_scroll_area = QScrollArea(self)
+        self.plans_scroll_area.resize(461, 351)
+        self.plans_scroll_area.move(10, 120)
+        self.scrollAreaWidgetContents2 = QWidget()
+        self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
+        self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
+        self.plans_dict = {}
+        self.add_button.clicked.connect(self.add_plan)
+        if '' == plans:
+            self.list_of_plans = []
+        else:
+            self.list_of_plans = plans.split('\n')
+        self.reserved_plans = self.list_of_plans[::-1]
+        n = 0
+        for plan in self.reserved_plans:
+            if plan == '':
+                continue
+            else:
+                plan_label = QLabel(plan)
+                plan_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                check_box = QCheckBox()
+                check_box.resize(20, 20)
+                self.plans_grid.addWidget(check_box, n, 0)
+                self.plans_grid.addWidget(plan_label, n, 1)
+                n += 1
+                self.plans_dict[check_box] = plan_label
+                check_box.stateChanged.connect(self.delete_plan)
+        self.plans_scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.plans_scroll_area.setWidget(self.scrollAreaWidgetContents2)
+        self.plans_scroll_area.show()
+
+    def add_plan(self):
+        if self.current_plan.text() == '':
+            self.error_dialog = QErrorMessage()
+            self.error_dialog.showMessage('Вам нужно обязательно ввести что-нибудь в поле.')
+            self.error_dialog.show()
+            return
+        else:
+            plan_text = f'{self.current_plan.text()}\n'
+            cursor.execute(f"SELECT plans FROM users WHERE login = '{current_login}'")
+            plans = cursor.fetchone()[0] + plan_text
+            cursor.execute(f"UPDATE users SET plans = '{plans}' WHERE login = '{current_login}'")
+            data_base.commit()
+            self.list_of_plans.append(self.current_plan.text())
+            self.reserved_plans = self.list_of_plans[::-1]
+            n = 0
+            self.plans_scroll_area = QScrollArea(self)
+            self.plans_scroll_area.resize(461, 351)
+            self.plans_scroll_area.move(10, 120)
+            self.scrollAreaWidgetContents2 = QWidget()
+            self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
+            self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
+            for plan in self.reserved_plans:
+                if plan == '':
+                    continue
+                else:
+                    plan_label = QLabel(plan)
+                    plan_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                    check_box = QCheckBox()
+                    check_box.resize(20, 20)
+                    self.plans_grid.addWidget(check_box, n, 0)
+                    self.plans_grid.addWidget(plan_label, n, 1)
+                    n += 1
+                    self.plans_dict[check_box] = plan_label
+                    check_box.stateChanged.connect(self.delete_plan)
+            self.plans_scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+            self.plans_scroll_area.setWidget(self.scrollAreaWidgetContents2)
+            self.plans_scroll_area.show()
+            self.current_plan.setText('')
+
+    def delete_plan(self):
+        sender = self.sender()
+        plan_to_delete = self.plans_dict[sender]
+        self.list_of_plans.remove(plan_to_delete.text())
+        plans = '\n'.join(self.list_of_plans)
+        cursor.execute(f"UPDATE users SET plans = '{plans}' WHERE login = '{current_login}'")
+        data_base.commit()
+        self.plans_scroll_area = QScrollArea(self)
+        self.plans_scroll_area.resize(461, 351)
+        self.plans_scroll_area.move(10, 120)
+        self.scrollAreaWidgetContents2 = QWidget()
+        self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
+        self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
+        cursor.execute(f"SELECT plans FROM users WHERE login = '{current_login}'")
+        plans = f"{cursor.fetchone()[0]}"
+        self.plans_dict = {}
+        if '' == plans:
+            self.list_of_plans = []
+        else:
+            self.list_of_plans = plans.split('\n')
+        self.reserved_plans = self.list_of_plans[::-1]
+        n = 0
+        for plan in self.reserved_plans:
+            if plan == '':
+                continue
+            else:
+                plan_label = QLabel(plan)
+                plan_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
+                check_box = QCheckBox()
+                check_box.resize(20, 20)
+                self.plans_grid.addWidget(check_box, n, 0)
+                self.plans_grid.addWidget(plan_label, n, 1)
+                n += 1
+                self.plans_dict[check_box] = plan_label
+                check_box.stateChanged.connect(self.delete_plan)
+        self.plans_scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
+        self.plans_scroll_area.setWidget(self.scrollAreaWidgetContents2)
+        self.plans_scroll_area.show()
+
+
+class MyWidget(QMainWindow):
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_app.ui', self)
@@ -192,6 +309,7 @@ class MyWidget(QMainWindow):  # добавить планы и напомина�
         self.select_color.move(640, 60)
 
         self.insights_button.clicked.connect(self.view_insights)
+        self.plans_button.clicked.connect(self.view_plans)
 
         self.no_color.toggle()
         self.no_color.clicked.connect(self.no_color_clicked)
@@ -282,6 +400,12 @@ class MyWidget(QMainWindow):  # добавить планы и напомина�
         self.insights_window.setWindowTitle('Статистика')
         self.insights_window.setFixedSize(570, 385)
         self.insights_window.show()
+
+    def view_plans(self):
+        self.plans_window = PlansWindow()
+        self.plans_window.setWindowTitle('Ваши планы')
+        self.plans_window.setFixedSize(480, 490)
+        self.plans_window.show()
 
     def current_time(self):
         if '' == self.task.text():
@@ -381,12 +505,13 @@ class MyWidget(QMainWindow):  # добавить планы и напомина�
 
 
 if __name__ == '__main__':
-    data_base = sqlite3.connect('toggl_db.db')
+    data_base = sqlite3.connect('toggl_data_base.db')
     cursor = data_base.cursor()
     cursor.execute("""CREATE TABLE IF NOT EXISTS users (
         login TEXT,
         password TEXT,
-        data TEXT
+        data TEXT,
+        plans TEXT
     )""")
     data_base.commit()
     for user in cursor.execute("SELECT * FROM users"):
