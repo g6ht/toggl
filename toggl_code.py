@@ -1,15 +1,17 @@
-from PyQt5 import uic, QtGui, QtCore
+from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea, \
     QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QLineEdit, QCheckBox
 from PyQt5.QtCore import QTimer
-import time, datetime
+import time
+import datetime
 from pyqtgraph.Qt import QtCore, QtGui
 import sqlite3
-
 import sys
 
 
 class Authorization(QWidget):
+    """"Класс для входа в аккаунт или регистрации в приложении"""
+
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_authorization.ui', self)
@@ -23,6 +25,7 @@ class Authorization(QWidget):
         self.eye_button.clicked.connect(self.eye)
 
     def eye(self):
+        """Функция, которая показывает или скрывает пароль"""
         if self.eye_button.isChecked():
             self.eye_button.setStyleSheet("background-color: rgb(195, 195, 195)")
             self.password.setEchoMode(QLineEdit.Normal)
@@ -31,6 +34,7 @@ class Authorization(QWidget):
             self.password.setEchoMode(QLineEdit.Password)
 
     def next_window(self):
+        """Функция, которая открывает окно приложения, если выполнен вход"""
         if self.logged_in:
             self.error_message_label.setStyleSheet("color: rgb(127, 127, 127)")
             self.close()
@@ -40,7 +44,8 @@ class Authorization(QWidget):
             self.error_message_label.setText('Сначала войдите в аккаунт.')
             self.error_message_label.setStyleSheet("color: rgb(255, 0, 0)")
 
-    def log_in(self):  # вход
+    def log_in(self):
+        """Функция, которая производит вход пользователя в систему"""
         password_flag = 0
         user_login = self.login.text()
         user_password = self.password.text()
@@ -77,7 +82,8 @@ class Authorization(QWidget):
             if password_flag == 1:
                 return
 
-    def sign_up(self):  # регистрация
+    def sign_up(self):
+        """Функция, которая регистрирует нового пользователя"""
         user_login = self.login.text()
         user_password = self.password.text()
         data = ''
@@ -108,6 +114,8 @@ class Authorization(QWidget):
 
 
 class InsightsWindow(QWidget):
+    """Класс, который показывает статистику пользователя"""
+
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_insights.ui', self)
@@ -182,6 +190,8 @@ class InsightsWindow(QWidget):
 
 
 class PlansWindow(QWidget):
+    """Класс, который показывает планы пользоваетеля"""
+
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_plans.ui', self)
@@ -219,6 +229,7 @@ class PlansWindow(QWidget):
         self.plans_scroll_area.show()
 
     def add_plan(self):
+        """Функция, которая добавляет и выводит новые планы"""
         if self.current_plan.text() == '':
             self.error_dialog = QErrorMessage()
             self.error_dialog.showMessage('Вам нужно обязательно ввести что-нибудь в поле.')
@@ -258,6 +269,7 @@ class PlansWindow(QWidget):
             self.current_plan.setText('')
 
     def delete_plan(self):
+        """Функция, которая удаляет планы из списка"""
         sender = self.sender()
         plan_to_delete = self.plans_dict[sender]
         self.list_of_plans.remove(plan_to_delete.text())
@@ -298,6 +310,8 @@ class PlansWindow(QWidget):
 
 
 class MyWidget(QMainWindow):
+    """Класс основного окна программы"""
+
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_app.ui', self)
@@ -331,6 +345,7 @@ class MyWidget(QMainWindow):
         self.stop.clicked.connect(self.reset)
 
     def start_func(self):
+        """Функция, которая выводит данные пользователя, если они уже есть"""
         cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
         data = f"{cursor.fetchone()[0]}"
         if data == '':
@@ -397,18 +412,21 @@ class MyWidget(QMainWindow):
             self.scroll_area.show()
 
     def view_insights(self):
+        """Функция, которая запускает окно со статистикой"""
         self.insights_window = InsightsWindow()
         self.insights_window.setWindowTitle('Статистика')
         self.insights_window.setFixedSize(570, 385)
         self.insights_window.show()
 
     def view_plans(self):
+        """Функия, которая запускает окно с планами"""
         self.plans_window = PlansWindow()
         self.plans_window.setWindowTitle('Ваши планы')
         self.plans_window.setFixedSize(480, 490)
         self.plans_window.show()
 
     def current_time(self):
+        """Функция, которая регистрирует время начала выполнения задачи"""
         if '' == self.task.text():
             self.error_dialog = QErrorMessage()
             self.error_dialog.showMessage('Вам нужно обязательно ввести название задачи.')
@@ -421,18 +439,22 @@ class MyWidget(QMainWindow):
             self.start_time = self.start_time.strftime("%d-%m-%Y %H:%M")
 
     def updateUptime(self):
+        """Функция, которая обновляет таймер"""
         self.time += 1
         self.settimer(self.time)
 
     def settimer(self, int):
+        """Функция, которая передаёт значения таймера в Label"""
         self.time = int
         self.timelabel.setText(time.strftime('%H:%M:%S', time.gmtime(self.time)))
 
     def reset(self):
+        """Функция, которая сбивает таймер"""
         self.time = 0
         self.settimer(self.time)
 
     def newtask(self):
+        """Функция, которая выводит новую задачу на экран"""
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
         else:
@@ -490,9 +512,11 @@ class MyWidget(QMainWindow):
             data_base.commit()
 
     def no_color_clicked(self):
+        """Функция, которая прячет Label с выбранным цветом, если выбран параметр 'без цвета'"""
         self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
 
     def color_selection(self):
+        """Функция, которая запускает окно выбора цвета"""
         color = QColorDialog.getColor()
         try:
             self.color = color.name()
