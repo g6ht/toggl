@@ -133,12 +133,13 @@ class InsightsWindow(QWidget):
                 hours_value = str(hours_value + previous_hours_value)
                 minutes_value = str(minutes_value + previous_minutes_value)
                 seconds_value = str(seconds_value + previous_seconds_value)
-                if int(seconds_value) > 59:
-                    minutes_value = str(int(minutes_value) + 1)
-                    seconds_value = str(abs(60 - int(seconds_value)))
-                if int(minutes_value) > 59:
-                    hours_value = str(int(hours_value) + 1)
-                    minutes_value = str(abs(60 - int(minutes_value)))
+                while int(minutes_value) > 59 or int(seconds_value) > 59:
+                    if int(seconds_value) > 59:
+                        minutes_value = str(int(minutes_value) + 1)
+                        seconds_value = str(abs(60 - int(seconds_value)))
+                    if int(minutes_value) > 59:
+                        hours_value = str(int(hours_value) + 1)
+                        minutes_value = str(abs(60 - int(minutes_value)))
                 if len(hours_value) == 1:
                     hours_value = f'0{hours_value}'
                 if len(minutes_value) == 1:
