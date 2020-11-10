@@ -539,9 +539,6 @@ if __name__ == '__main__':
         plans TEXT
     )""")
     data_base.commit()
-    for user in cursor.execute("SELECT * FROM users"):
-        print(user)
-
     current_login = ''
     app = QApplication([])
     authorization = Authorization()
