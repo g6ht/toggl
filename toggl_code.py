@@ -319,8 +319,7 @@ class MyWidget(QMainWindow):
         self.setFixedSize(1062, 676)
 
         self.color = ''
-        self.stop.move(790, 47)
-        self.start.move(750, 39)
+    
         self.select_color.move(640, 60)
 
         self.insights_button.clicked.connect(self.view_insights)

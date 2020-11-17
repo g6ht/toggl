@@ -26,7 +26,7 @@
     <string/>
    </property>
    <property name="pixmap">
-    <pixmap>../../OneDrive/Рабочий стол/светлыйфон.png</pixmap>
+    <pixmap>светлыйфон.png</pixmap>
    </property>
   </widget>
   <widget class="QLabel" name="plans_label">
