@@ -134,10 +134,10 @@ class InsightsWindow(QWidget):
                 seconds_value = str(seconds_value + previous_seconds_value)
                 if int(seconds_value) > 59:
                     minutes_value = str(int(minutes_value) + 1)
-                    seconds_value = '00'
+                    seconds_value = str(abs(60 - int(seconds_value)))
                 if int(minutes_value) > 59:
                     hours_value = str(int(hours_value) + 1)
-                    minutes_value = '00'
+                    minutes_value = str(abs(60 - int(minutes_value)))
                 if len(hours_value) == 1:
                     hours_value = f'0{hours_value}'
                 if len(minutes_value) == 1:
@@ -164,10 +164,12 @@ class InsightsWindow(QWidget):
             self.scrollAreaWidgetContents1.setMinimumSize(510, 280)
             self.insights_grid = QGridLayout(self.scrollAreaWidgetContents1)
             n = 0
-            for dates, times in self.date_list.items():
+            items = list(self.date_list.items())
+            reversed_dict = {k: v for k, v in reversed(items)}
+            for dates, times in reversed_dict.items():
                 date_label = QLabel(dates)
                 date_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-                time_label = QLabel(times)
+                time_label = QLabel(f"\t\t{times}")
                 time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
                 self.insights_grid.addWidget(date_label, n, 0)
                 self.insights_grid.addWidget(time_label, n, 1)
@@ -177,7 +179,7 @@ class InsightsWindow(QWidget):
             self.insights_scroll_area.show()
 
 
-class MyWidget(QMainWindow):  # добавить инглиш
+class MyWidget(QMainWindow):  # добавить планы и напоминалки
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_app.ui', self)
