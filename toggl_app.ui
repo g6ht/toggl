@@ -2901,6 +2901,50 @@
      <string>▪</string>
     </property>
    </widget>
+   <widget class="QTableWidget" name="data_table">
+    <property name="geometry">
+     <rect>
+      <x>10</x>
+      <y>180</y>
+      <width>1051</width>
+      <height>431</height>
+     </rect>
+    </property>
+    <property name="sizeAdjustPolicy">
+     <enum>QAbstractScrollArea::AdjustToContents</enum>
+    </property>
+    <property name="editTriggers">
+     <set>QAbstractItemView::NoEditTriggers</set>
+    </property>
+    <property name="textElideMode">
+     <enum>Qt::ElideLeft</enum>
+    </property>
+    <attribute name="horizontalHeaderCascadingSectionResizes">
+     <bool>false</bool>
+    </attribute>
+   </widget>
+   <widget class="QLabel" name="start_text">
+    <property name="geometry">
+     <rect>
+      <x>394</x>
+      <y>205</y>
+      <width>311</width>
+      <height>51</height>
+     </rect>
+    </property>
+    <property name="font">
+     <font>
+      <family>Bahnschrift Light SemiCondensed</family>
+      <pointsize>20</pointsize>
+     </font>
+    </property>
+    <property name="styleSheet">
+     <string notr="true">color: rgb(127, 127, 127)</string>
+    </property>
+    <property name="text">
+     <string>Тут пока ничего нет...</string>
+    </property>
+   </widget>
    <zorder>label</zorder>
    <zorder>task</zorder>
    <zorder>label_2</zorder>
@@ -2918,6 +2962,8 @@
    <zorder>start</zorder>
    <zorder>pause</zorder>
    <zorder>stop</zorder>
+   <zorder>start_text</zorder>
+   <zorder>data_table</zorder>
   </widget>
   <widget class="QMenuBar" name="menubar">
    <property name="geometry">

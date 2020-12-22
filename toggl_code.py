@@ -1,7 +1,10 @@
+from functools import partial
+
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea, \
-    QColorDialog, QErrorMessage, QGridLayout, QGraphicsDropShadowEffect, QLineEdit, QCheckBox
-from PyQt5.QtCore import QTimer
+    QColorDialog, QErrorMessage, QGridLayout, QLineEdit, QCheckBox, QTableWidgetItem, \
+    QHeaderView, QPushButton
+from PyQt5.QtCore import QTimer, Qt
 import time
 import datetime
 from pyqtgraph.Qt import QtCore, QtGui
@@ -73,11 +76,14 @@ class Authorization(QWidget):
                     password_flag = 1
                 elif user_login == login_password[0] and user_password == login_password[1]:
                     self.error_message_label.setText('Вы успешно вошли в аккаунт.')
+                    cursor.execute(f"SELECT id from users where login = '{user_login}'")
+                    u_id = cursor.fetchone()[0]
                     self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
                     password_flag = 0
                     self.logged_in = True
-                    global current_login
-                    current_login = user_login
+                    global user_id
+                    user_id = u_id
+                    print(user_id)
                     break
             if password_flag == 1:
                 return
@@ -86,8 +92,6 @@ class Authorization(QWidget):
         """Функция, которая регистрирует нового пользователя"""
         user_login = self.login.text()
         user_password = self.password.text()
-        data = ''
-        plans = ''
 
         if len(self.login.text()) < 3:
             self.error_message_label.setText('Логин слишком короткий. Попробуйте снова.')
@@ -103,7 +107,13 @@ class Authorization(QWidget):
         cursor.execute(f"SELECT login FROM users WHERE login = '{user_login}'")
 
         if cursor.fetchone() is None:
-            cursor.execute(f"INSERT INTO users VALUES (?, ?, ?, ?)", (user_login, user_password, data, plans))
+            cursor.execute("INSERT INTO users VALUES (NULL, ?, ?)", (user_login, user_password))
+            cursor.execute(f"SELECT id FROM users WHERE login = '{user_login}'")
+            global user_id
+            user_id = cursor.fetchone()[0]
+            print(user_id)
+            cursor.execute("INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?)", (user_id, '', '', '', '', '', ''))
+            cursor.execute("INSERT INTO plans VALUES (?, ?)", (user_id, ''))
             data_base.commit()
             self.error_message_label.setText('Вы успешно зарегистрированы.')
             self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
@@ -121,15 +131,14 @@ class InsightsWindow(QWidget):
         uic.loadUi('toggl_insights.ui', self)
         self.date_list = {}
         self.list_of_values = []
-        cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
-        data = f"{cursor.fetchone()[0]}"
-        for line in data.split('\n'):
-            if len(line) == 0:
-                continue
-            value = line.split("|")[0][:10]
-            time_value = line.split("|")[-1].strip()
+        cursor.execute(f"SELECT start_time, time FROM data WHERE user_id = '{user_id}'")
+        data = cursor.fetchall()
+        for line in data:
+            print(line)
+            value = line[0][:10]
+            time_value = line[1]
             if value not in self.date_list.keys():
-                self.date_list[value] = f'{time_value}'
+                self.date_list[value] = time_value
             else:
                 previous_time_value = self.date_list[value]
                 previous_hours_value = int(previous_time_value[:2])
@@ -157,7 +166,7 @@ class InsightsWindow(QWidget):
                 time_value = f'{hours_value}:{minutes_value}:{seconds_value}'
                 self.date_list[value] = f'{time_value}'
 
-        if not toggl.history_list:
+        if not data:
             self.insights_label.setText('Нет данных для составления вашей статистики.')
             self.insights_label.move(10, 150)
             self.insights_label_2.setStyleSheet("color: rgb(195, 195, 195)")
@@ -195,8 +204,11 @@ class PlansWindow(QWidget):
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_plans.ui', self)
-        cursor.execute(f"SELECT plans FROM users WHERE login = '{current_login}'")
-        plans = f"{cursor.fetchone()[0]}"
+        cursor.execute(f"SELECT plan FROM plans WHERE user_id = '{user_id}'")
+        plans0 = cursor.fetchall()
+        plans = []
+        for plan in plans0:
+            plans.append(plan[0])
         self.plans_scroll_area = QScrollArea(self)
         self.plans_scroll_area.resize(461, 351)
         self.plans_scroll_area.move(10, 120)
@@ -205,10 +217,16 @@ class PlansWindow(QWidget):
         self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
         self.plans_dict = {}
         self.add_button.clicked.connect(self.add_plan)
-        if '' == plans:
-            self.list_of_plans = []
-        else:
-            self.list_of_plans = plans.split('\n')
+        self.list_of_plans = plans
+        self.display_plans()
+
+    def display_plans(self):
+        self.plans_scroll_area = QScrollArea(self)
+        self.plans_scroll_area.resize(461, 351)
+        self.plans_scroll_area.move(10, 120)
+        self.scrollAreaWidgetContents2 = QWidget()
+        self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
+        self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
         self.reserved_plans = self.list_of_plans[::-1]
         n = 0
         for plan in self.reserved_plans:
@@ -236,36 +254,11 @@ class PlansWindow(QWidget):
             self.error_dialog.show()
             return
         else:
-            plan_text = f'{self.current_plan.text()}\n'
-            cursor.execute(f"SELECT plans FROM users WHERE login = '{current_login}'")
-            plans = cursor.fetchone()[0] + plan_text
-            cursor.execute(f"UPDATE users SET plans = '{plans}' WHERE login = '{current_login}'")
+            plan_text = self.current_plan.text()
+            cursor.execute(f"INSERT INTO plans VALUES (?, ?)", (user_id, plan_text))
             data_base.commit()
             self.list_of_plans.append(self.current_plan.text())
-            self.reserved_plans = self.list_of_plans[::-1]
-            n = 0
-            self.plans_scroll_area = QScrollArea(self)
-            self.plans_scroll_area.resize(461, 351)
-            self.plans_scroll_area.move(10, 120)
-            self.scrollAreaWidgetContents2 = QWidget()
-            self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
-            self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
-            for plan in self.reserved_plans:
-                if plan == '':
-                    continue
-                else:
-                    plan_label = QLabel(plan)
-                    plan_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-                    check_box = QCheckBox()
-                    check_box.resize(20, 20)
-                    self.plans_grid.addWidget(check_box, n, 0)
-                    self.plans_grid.addWidget(plan_label, n, 1)
-                    n += 1
-                    self.plans_dict[check_box] = plan_label
-                    check_box.stateChanged.connect(self.delete_plan)
-            self.plans_scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            self.plans_scroll_area.setWidget(self.scrollAreaWidgetContents2)
-            self.plans_scroll_area.show()
+            self.display_plans()
             self.current_plan.setText('')
 
     def delete_plan(self):
@@ -273,40 +266,9 @@ class PlansWindow(QWidget):
         sender = self.sender()
         plan_to_delete = self.plans_dict[sender]
         self.list_of_plans.remove(plan_to_delete.text())
-        plans = '\n'.join(self.list_of_plans)
-        cursor.execute(f"UPDATE users SET plans = '{plans}' WHERE login = '{current_login}'")
+        cursor.execute(f"DELETE FROM plans WHERE plan = '{plan_to_delete.text()}'")
         data_base.commit()
-        self.plans_scroll_area = QScrollArea(self)
-        self.plans_scroll_area.resize(461, 351)
-        self.plans_scroll_area.move(10, 120)
-        self.scrollAreaWidgetContents2 = QWidget()
-        self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
-        self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
-        cursor.execute(f"SELECT plans FROM users WHERE login = '{current_login}'")
-        plans = f"{cursor.fetchone()[0]}"
-        self.plans_dict = {}
-        if '' == plans:
-            self.list_of_plans = []
-        else:
-            self.list_of_plans = plans.split('\n')
-        self.reserved_plans = self.list_of_plans[::-1]
-        n = 0
-        for plan in self.reserved_plans:
-            if plan == '':
-                continue
-            else:
-                plan_label = QLabel(plan)
-                plan_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-                check_box = QCheckBox()
-                check_box.resize(20, 20)
-                self.plans_grid.addWidget(check_box, n, 0)
-                self.plans_grid.addWidget(plan_label, n, 1)
-                n += 1
-                self.plans_dict[check_box] = plan_label
-                check_box.stateChanged.connect(self.delete_plan)
-        self.plans_scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-        self.plans_scroll_area.setWidget(self.scrollAreaWidgetContents2)
-        self.plans_scroll_area.show()
+        self.display_plans()
 
 
 class MyWidget(QMainWindow):
@@ -317,9 +279,10 @@ class MyWidget(QMainWindow):
         uic.loadUi('toggl_app.ui', self)
         self.setWindowTitle("Toggl")
         self.setFixedSize(1062, 676)
+        self.history_list = []
 
         self.color = ''
-    
+
         self.select_color.move(640, 60)
 
         self.insights_button.clicked.connect(self.view_insights)
@@ -343,72 +306,72 @@ class MyWidget(QMainWindow):
         self.stop.clicked.connect(self.newtask)
         self.stop.clicked.connect(self.reset)
 
+        self.data_table.setColumnCount(6)
+        self.data_table.setHorizontalHeaderLabels(["Начало", "Задача", "Тэг", "Цвет", "Длительность", "Продолжить"])
+
+    def continue_task(self, row, col):
+        sender = self.sender()
+        print(sender)
+        cursor.execute(f'SELECT time from data WHERE checkbox = "{sender}"')
+        line = cursor.fetchone()[0]
+        print(line, 'line')
+        h, m, s = int(line[:2]), int(line[3:5]), int(line[6:])
+        self.timer0 = QtCore.QTimer()
+        self.curr_time = QtCore.QTime(h, m, s)
+        self.timer0.setInterval(1000)
+        self.timer0.timeout.connect(partial(self.time_add, row=row, col=col))
+        if sender.isChecked():
+            self.timer0.start()
+            print(self.curr_time.toString("hh:mm:ss"))
+            print('checked')
+        else:
+            self.timer0.stop()
+            cursor.execute(f"UPDATE data SET time = '{self.data_table.item(row, col).text()}' WHERE checkbox = '{sender}'")
+            data_base.commit()
+            print(self.curr_time.toString("hh:mm:ss"))
+            print('no')
+
+    def time_add(self, row, col):
+        self.curr_time = self.curr_time.addSecs(1)
+        self.data_table.setItem(row, col, QTableWidgetItem(self.curr_time.toString("hh:mm:ss")))
+
+    def add_content(self, data):
+        self.data_table.setRowCount(len(data) - 1)
+        row_id = 0
+        for row in data[:-1]:
+            for i in range(6):
+                if i == 3:
+                    color = row[4]
+                    print(color)
+                    if color == '#ffffff':
+                        color_label = QLabel('○')
+                    else:
+                        color_label = QLabel(f'<h1 style="color: {color};">●')
+                    self.data_table.setCellWidget(row_id, 3, color_label)
+                elif i == 5:
+                    btn = QCheckBox()
+                    btn.stateChanged.connect(partial(self.continue_task, row=row_id, col=i - 1))
+                    self.data_table.setCellWidget(row_id, 5, btn)
+                    cursor.execute(f"UPDATE data SET checkbox = '{btn}' WHERE task = '{row[2]}'")
+                    data_base.commit()
+                else:
+                    self.data_table.setItem(row_id, i, QTableWidgetItem(str(row[i + 1])))
+            row_id += 1
+        self.data_table.resizeColumnsToContents()
+        self.data_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.data_table.update()
+
     def start_func(self):
         """Функция, которая выводит данные пользователя, если они уже есть"""
-        cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
-        data = f"{cursor.fetchone()[0]}"
-        if data == '':
-            self.history_list = []
-            self.scroll_area = QScrollArea(self)
-            self.scroll_area.resize(1005, 471)
-            self.scroll_area.move(26, 180)
-            self.scroll_area.setAlignment(QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop)
-            self.start_text = QLabel(self)
-            self.start_text.setText('Тут пока ничего нет...')
-            self.start_text.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 20))
-            self.scroll_area.setWidget(self.start_text)
-            self.scroll_area.show()
+        cursor.execute(f"SELECT * FROM data WHERE user_id = '{user_id}'")
+        data = cursor.fetchall()
+        print(data, 'data')
+        if len(data) == 1:
+            self.data_table.setVisible(False)
+            self.start_text.setStyleSheet("color: rgb(0, 0, 0)")
+            print('done')
         else:
-            self.history_list = []
-            for task in data.split('\n'):
-                labels = []
-                if len(task) == 0:
-                    continue
-                for label in task.split('|'):
-                    out_label = QLabel(label.strip())
-                    if label == task.split('|')[0]:
-                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-                        out_label_font = out_label.font()
-                        out_label_font.setUnderline(True)
-                        out_label.setFont(out_label_font)
-                    elif label == task.split('|')[1]:
-                        out_label.setText(f"  {label}         ")
-                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-                    elif label == task.split('|')[2]:
-                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-                        out_label_font = out_label.font()
-                        out_label_font.setItalic(True)
-                        out_label.setFont(out_label_font)
-                    elif label == task.split('|')[3]:
-                        if '○' in label:
-                            out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
-                            shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                               color=QtGui.QColor("#000000"),
-                                                               offset=QtCore.QPointF(0.0, 0.0))
-                            out_label.setGraphicsEffect(shadow)
-                        else:
-                            out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-                            shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                               color=QtGui.QColor("#000000"),
-                                                               offset=QtCore.QPointF(0.0, 0.0))
-                            out_label.setGraphicsEffect(shadow)
-                    elif label == task.split('|')[4]:
-                        out_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-                    labels.append(out_label)
-                self.history_list.append(labels)
-            self.scroll_area = QScrollArea(self)
-            self.scroll_area.resize(1005, 471)
-            self.scroll_area.move(26, 180)
-            self.scrollAreaWidgetContents = QWidget()
-            self.scrollAreaWidgetContents.setMinimumSize(900, 400)
-            self.grid = QGridLayout(self.scrollAreaWidgetContents)
-            self.reversed_list = self.history_list[::-1]
-            for line in self.reversed_list:
-                for label in line:
-                    self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
-            self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            self.scroll_area.setWidget(self.scrollAreaWidgetContents)
-            self.scroll_area.show()
+            self.add_content(data[::-1])
 
     def view_insights(self):
         """Функция, которая запускает окно со статистикой"""
@@ -457,58 +420,23 @@ class MyWidget(QMainWindow):
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
         else:
-            self.scrollAreaWidgetContents = QWidget()
-            self.scrollAreaWidgetContents.setMinimumSize(900, 400)
-            self.grid = QGridLayout(self.scrollAreaWidgetContents)
             if self.no_color.isChecked():
-                self.color_label = QLabel('○')
-                self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 30))
-                self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                        color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
-                self.color_label.setGraphicsEffect(self.shadow)
-            else:
-                self.color_label = QLabel(f'<h1 style="color: {self.color};">●')
-                self.color_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 15))
-                self.shadow = QGraphicsDropShadowEffect(self, blurRadius=5.0,
-                                                        color=QtGui.QColor("#000000"), offset=QtCore.QPointF(0.0, 0.0))
-                self.color_label.setGraphicsEffect(self.shadow)
-            if '' == self.tag.text():
-                self.tag_label = QLabel(self.tag.text())
-            else:
-                self.tag_label = QLabel(f"#{self.tag.text()}")
-                self.tag_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-                self.tag_label_font = self.tag_label.font()
-                self.tag_label_font.setItalic(True)
-                self.tag_label.setFont(self.tag_label_font)
-            self.start_time_label = QLabel(f'{self.start_time}:')
-            self.start_time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.start_time_label_font = self.start_time_label.font()
-            self.start_time_label_font.setUnderline(True)
-            self.start_time_label.setFont(self.start_time_label_font)
-            self.task_label = QLabel(f"  {self.task.text()}         ")
-            self.task_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.time_label = QLabel(time.strftime("%H:%M:%S", time.gmtime(self.time)))
-            self.time_label.setFont(QtGui.QFont('Bahnschrift Light SemiCondensed', 16))
-            self.history_list.append(
-                [self.start_time_label, self.task_label, self.tag_label, self.color_label, self.time_label])
-            self.reversed_list = self.history_list[::-1]
-            for line in self.reversed_list:
-                for label in line:
-                    self.grid.addWidget(label, self.reversed_list.index(line), line.index(label))
+                self.color = '#ffffff'
+            data_list = [user_id, self.start_time, self.task.text(), '#' + self.tag.text(),
+                 self.color, time.strftime("%H:%M:%S", time.gmtime(self.time)), '']
+            print(data_list)
+            self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
+            cursor.execute("INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?)", (data_list))
+            data_base.commit()
+            cursor.execute(f"SELECT * FROM data WHERE user_id = '{user_id}'")
+            data = cursor.fetchall()
+            print(data)
+            self.add_content(data[::-1])
+            self.history_list.append(data_list[1:-1])
             self.task.setText('')
             self.tag.setText('')
             if not self.no_color.isChecked():
                 self.no_color.toggle()
-            self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
-            self.scroll_area.setAlignment(QtCore.Qt.AlignLeft | QtCore.Qt.AlignTop)
-            self.scroll_area.setWidget(self.scrollAreaWidgetContents)
-            self.scroll_area.show()
-            self.data = f"{self.start_time}| {self.task_label.text().strip()}| {self.tag_label.text()}|" \
-                        f" {self.color_label.text()}| {self.time_label.text()}\n"
-            cursor.execute(f"SELECT data FROM users WHERE login = '{current_login}'")
-            data = cursor.fetchone()[0] + self.data
-            cursor.execute(f"UPDATE users SET data = '{data}' WHERE login = '{current_login}'")
-            data_base.commit()
 
     def no_color_clicked(self):
         """Функция, которая прячет Label с выбранным цветом, если выбран параметр 'без цвета'"""
@@ -529,16 +457,15 @@ class MyWidget(QMainWindow):
 
 
 if __name__ == '__main__':
-    data_base = sqlite3.connect('toggl_data_base.db')
+    data_base = sqlite3.connect('toggl_db.sqlite3')
     cursor = data_base.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS users (
-        login TEXT,
-        password TEXT,
-        data TEXT,
-        plans TEXT
-    )""")
-    data_base.commit()
-    current_login = ''
+    cursor.execute('SELECT * FROM users')
+    print(cursor.fetchall())
+    cursor.execute('SELECT * FROM data')
+    print(cursor.fetchall())
+    cursor.execute('SELECT * FROM plans')
+    print(cursor.fetchall())
+    user_id = 0
     app = QApplication([])
     authorization = Authorization()
     authorization.show()
