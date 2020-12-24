@@ -3,8 +3,8 @@ from functools import partial
 from PyQt5 import uic
 from PyQt5.QtWidgets import QMainWindow, QWidget, QLabel, QApplication, QScrollArea, \
     QColorDialog, QErrorMessage, QGridLayout, QLineEdit, QCheckBox, QTableWidgetItem, \
-    QHeaderView, QPushButton
-from PyQt5.QtCore import QTimer, Qt
+    QHeaderView
+from PyQt5.QtCore import QTimer
 import time
 import datetime
 from pyqtgraph.Qt import QtCore, QtGui
@@ -129,49 +129,17 @@ class InsightsWindow(QWidget):
     def __init__(self):
         super().__init__()
         uic.loadUi('toggl_insights.ui', self)
-        self.date_list = {}
-        self.list_of_values = []
         cursor.execute(f"SELECT start_time, time FROM data WHERE user_id = '{user_id}'")
-        data = cursor.fetchall()
-        for line in data:
-            print(line)
-            value = line[0][:10]
-            time_value = line[1]
-            if value not in self.date_list.keys():
-                self.date_list[value] = time_value
-            else:
-                previous_time_value = self.date_list[value]
-                previous_hours_value = int(previous_time_value[:2])
-                hours_value = int(time_value[:2])
-                previous_minutes_value = int(previous_time_value[3:5])
-                minutes_value = int(time_value[3:5])
-                previous_seconds_value = int(previous_time_value[6:])
-                seconds_value = int(time_value[6:])
-                hours_value = str(hours_value + previous_hours_value)
-                minutes_value = str(minutes_value + previous_minutes_value)
-                seconds_value = str(seconds_value + previous_seconds_value)
-                while int(minutes_value) > 59 or int(seconds_value) > 59:
-                    if int(seconds_value) > 59:
-                        minutes_value = str(int(minutes_value) + 1)
-                        seconds_value = str(abs(60 - int(seconds_value)))
-                    if int(minutes_value) > 59:
-                        hours_value = str(int(hours_value) + 1)
-                        minutes_value = str(abs(60 - int(minutes_value)))
-                if len(hours_value) == 1:
-                    hours_value = f'0{hours_value}'
-                if len(minutes_value) == 1:
-                    minutes_value = f'0{minutes_value}'
-                if len(seconds_value) == 1:
-                    seconds_value = f'0{seconds_value}'
-                time_value = f'{hours_value}:{minutes_value}:{seconds_value}'
-                self.date_list[value] = f'{time_value}'
-
-        if not data:
+        self.data = cursor.fetchall()
+        if not self.data:
             self.insights_label.setText('Нет данных для составления вашей статистики.')
             self.insights_label.move(10, 150)
             self.insights_label_2.setStyleSheet("color: rgb(195, 195, 195)")
             self.insights_label_3.setStyleSheet("color: rgb(195, 195, 195)")
         else:
+            self.date_list = {}
+            self.list_of_values = []
+            self.count_statistics()
             self.insights_label.setText('Ваша статистика:')
             self.insights_label.move(10, 10)
             self.insights_label_2.setStyleSheet("color: rgb(0, 0, 0)")
@@ -197,6 +165,36 @@ class InsightsWindow(QWidget):
             self.insights_scroll_area.setWidget(self.scrollAreaWidgetContents1)
             self.insights_scroll_area.show()
 
+    def count_statistics(self):
+        """Функция, которая подсчитывает статитстику"""
+        for line in self.data:
+            print(line)
+            value = line[0][:10]
+            time_value = line[1]
+            if value not in self.date_list.keys():
+                self.date_list[value] = time_value
+            else:
+                previous_time_value = self.date_list[value]
+                previous_hours_value = int(previous_time_value[:2])
+                hours_value = int(time_value[:2])
+                previous_minutes_value = int(previous_time_value[3:5])
+                minutes_value = int(time_value[3:5])
+                previous_seconds_value = int(previous_time_value[6:])
+                seconds_value = int(time_value[6:])
+                hours_value = hours_value + previous_hours_value
+                minutes_value = minutes_value + previous_minutes_value
+                seconds_value = seconds_value + previous_seconds_value
+                while minutes_value > 59 or seconds_value > 59:
+                    if seconds_value > 59:
+                        minutes_value = minutes_value + 1
+                        seconds_value = abs(60 - seconds_value)
+                    if minutes_value > 59:
+                        hours_value = hours_value + 1
+                        minutes_value = abs(60 - minutes_value)
+                time_value = QtCore.QTime(hours_value, minutes_value, seconds_value).toString("hh:mm:ss")
+                self.date_list[value] = f'{time_value}'
+                print(time_value)
+
 
 class PlansWindow(QWidget):
     """Класс, который показывает планы пользоваетеля"""
@@ -221,6 +219,7 @@ class PlansWindow(QWidget):
         self.display_plans()
 
     def display_plans(self):
+        """Функция, которая выводит список планов в ScrollArea"""
         self.plans_scroll_area = QScrollArea(self)
         self.plans_scroll_area.resize(461, 351)
         self.plans_scroll_area.move(10, 120)
@@ -247,7 +246,7 @@ class PlansWindow(QWidget):
         self.plans_scroll_area.show()
 
     def add_plan(self):
-        """Функция, которая добавляет и выводит новые планы"""
+        """Функция, которая добавляет новые планы"""
         if self.current_plan.text() == '':
             self.error_dialog = QErrorMessage()
             self.error_dialog.showMessage('Вам нужно обязательно ввести что-нибудь в поле.')
@@ -269,6 +268,43 @@ class PlansWindow(QWidget):
         cursor.execute(f"DELETE FROM plans WHERE plan = '{plan_to_delete.text()}'")
         data_base.commit()
         self.display_plans()
+
+
+class Timers:
+    """Класс, который создаёт новые таймеры"""
+
+    def __init__(self, sender, row, col, data_table):
+        self.data_table = data_table
+        self.sender = sender
+        self.row = row
+        self.col = col
+        print(self.sender)
+        cursor.execute(f'SELECT time from data WHERE checkbox = "{self.sender}"')
+        line = cursor.fetchone()[0]
+        print(line, 'line')
+        h, m, s = int(line[:2]), int(line[3:5]), int(line[6:])
+        self.timer_ = QtCore.QTimer()
+        self.curr_time = QtCore.QTime(h, m, s)
+        self.timer_.setInterval(1000)
+        self.timer_.timeout.connect(self.time_add)
+
+    def start_timer(self):
+        """Функция, котороя запускает таймеры"""
+        self.timer_.start()
+        print(self.curr_time.toString("hh:mm:ss"))
+        print('started')
+
+    def stop_timer(self):
+        """Функция, которая останавливает таймеры"""
+        self.timer_.stop()
+        print(self.curr_time.toString("hh:mm:ss"))
+        print('stopped')
+
+    def time_add(self):
+        """Функция, которая добавляет секунлы"""
+        self.curr_time = self.curr_time.addSecs(1)
+        print(self.curr_time.toString("hh:mm:ss"))
+        self.data_table.setItem(self.row, self.col, QTableWidgetItem(self.curr_time.toString("hh:mm:ss")))
 
 
 class MyWidget(QMainWindow):
@@ -310,32 +346,20 @@ class MyWidget(QMainWindow):
         self.data_table.setHorizontalHeaderLabels(["Начало", "Задача", "Тэг", "Цвет", "Длительность", "Продолжить"])
 
     def continue_task(self, row, col):
+        """Функция, которая создаёт таймеры"""
         sender = self.sender()
-        print(sender)
-        cursor.execute(f'SELECT time from data WHERE checkbox = "{sender}"')
-        line = cursor.fetchone()[0]
-        print(line, 'line')
-        h, m, s = int(line[:2]), int(line[3:5]), int(line[6:])
-        self.timer0 = QtCore.QTimer()
-        self.curr_time = QtCore.QTime(h, m, s)
-        self.timer0.setInterval(1000)
-        self.timer0.timeout.connect(partial(self.time_add, row=row, col=col))
+        self.timer0 = Timers(sender, row, col, self.data_table)
         if sender.isChecked():
-            self.timer0.start()
-            print(self.curr_time.toString("hh:mm:ss"))
-            print('checked')
+            self.timer0.start_timer()
         else:
-            self.timer0.stop()
-            cursor.execute(f"UPDATE data SET time = '{self.data_table.item(row, col).text()}' WHERE checkbox = '{sender}'")
+            self.timer0.stop_timer()
+            cursor.execute(
+                f"UPDATE data SET time = '{self.data_table.item(row, col).text()}' WHERE checkbox = '{sender}'")
             data_base.commit()
-            print(self.curr_time.toString("hh:mm:ss"))
-            print('no')
-
-    def time_add(self, row, col):
-        self.curr_time = self.curr_time.addSecs(1)
-        self.data_table.setItem(row, col, QTableWidgetItem(self.curr_time.toString("hh:mm:ss")))
 
     def add_content(self, data):
+        """Функция, которая добавляет данные в таблицу"""
+        self.data_table.setVisible(True)
         self.data_table.setRowCount(len(data) - 1)
         row_id = 0
         for row in data[:-1]:
@@ -416,7 +440,7 @@ class MyWidget(QMainWindow):
         self.settimer(self.time)
 
     def newtask(self):
-        """Функция, которая выводит новую задачу на экран"""
+        """Функция, которая добавляет новую задачу"""
         if '00:00:00' == self.timelabel.text() or '' == self.task.text():
             return
         else:
