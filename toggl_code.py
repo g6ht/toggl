@@ -83,7 +83,6 @@ class Authorization(QWidget):
                     self.logged_in = True
                     global user_id
                     user_id = u_id
-                    print(user_id)
                     break
             if password_flag == 1:
                 return
@@ -111,7 +110,6 @@ class Authorization(QWidget):
             cursor.execute(f"SELECT id FROM users WHERE login = '{user_login}'")
             global user_id
             user_id = cursor.fetchone()[0]
-            print(user_id)
             cursor.execute("INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?)", (user_id, '', '', '', '', '', ''))
             cursor.execute("INSERT INTO plans VALUES (?, ?)", (user_id, ''))
             data_base.commit()
@@ -134,8 +132,8 @@ class InsightsWindow(QWidget):
         if not self.data:
             self.insights_label.setText('Нет данных для составления вашей статистики.')
             self.insights_label.move(10, 150)
-            self.insights_label_2.setStyleSheet("color: rgb(195, 195, 195)")
-            self.insights_label_3.setStyleSheet("color: rgb(195, 195, 195)")
+            self.insights_label_2.setStyleSheet("color: rgb(190, 190, 190)")
+            self.insights_label_3.setStyleSheet("color: rgb(190, 190, 190)")
         else:
             self.date_list = {}
             self.list_of_values = []
@@ -147,6 +145,7 @@ class InsightsWindow(QWidget):
             self.insights_scroll_area = QScrollArea(self)
             self.insights_scroll_area.resize(530, 310)
             self.insights_scroll_area.move(20, 75)
+            self.insights_scroll_area.setStyleSheet("background-color: rgb(255, 255, 255)")
             self.scrollAreaWidgetContents1 = QWidget()
             self.scrollAreaWidgetContents1.setMinimumSize(510, 280)
             self.insights_grid = QGridLayout(self.scrollAreaWidgetContents1)
@@ -168,7 +167,6 @@ class InsightsWindow(QWidget):
     def count_statistics(self):
         """Функция, которая подсчитывает статитстику"""
         for line in self.data:
-            print(line)
             value = line[0][:10]
             time_value = line[1]
             if value not in self.date_list.keys():
@@ -193,7 +191,6 @@ class InsightsWindow(QWidget):
                         minutes_value = abs(60 - minutes_value)
                 time_value = QtCore.QTime(hours_value, minutes_value, seconds_value).toString("hh:mm:ss")
                 self.date_list[value] = f'{time_value}'
-                print(time_value)
 
 
 class PlansWindow(QWidget):
@@ -223,6 +220,7 @@ class PlansWindow(QWidget):
         self.plans_scroll_area = QScrollArea(self)
         self.plans_scroll_area.resize(461, 351)
         self.plans_scroll_area.move(10, 120)
+        self.plans_scroll_area.setStyleSheet("background-color: white")
         self.scrollAreaWidgetContents2 = QWidget()
         self.scrollAreaWidgetContents2.setMinimumSize(455, 345)
         self.plans_grid = QGridLayout(self.scrollAreaWidgetContents2)
@@ -278,10 +276,8 @@ class Timers:
         self.sender = sender
         self.row = row
         self.col = col
-        print(self.sender)
         cursor.execute(f'SELECT time from data WHERE checkbox = "{self.sender}"')
         line = cursor.fetchone()[0]
-        print(line, 'line')
         h, m, s = int(line[:2]), int(line[3:5]), int(line[6:])
         self.timer_ = QtCore.QTimer()
         self.curr_time = QtCore.QTime(h, m, s)
@@ -291,20 +287,18 @@ class Timers:
     def start_timer(self):
         """Функция, котороя запускает таймеры"""
         self.timer_.start()
-        print(self.curr_time.toString("hh:mm:ss"))
-        print('started')
 
     def stop_timer(self):
         """Функция, которая останавливает таймеры"""
         self.timer_.stop()
-        print(self.curr_time.toString("hh:mm:ss"))
-        print('stopped')
 
     def time_add(self):
         """Функция, которая добавляет секунлы"""
         self.curr_time = self.curr_time.addSecs(1)
-        print(self.curr_time.toString("hh:mm:ss"))
         self.data_table.setItem(self.row, self.col, QTableWidgetItem(self.curr_time.toString("hh:mm:ss")))
+        cursor.execute(
+            f"UPDATE data SET time = '{self.data_table.item(self.row, self.col).text()}' WHERE checkbox = '{self.sender}'")
+        data_base.commit()
 
 
 class MyWidget(QMainWindow):
@@ -353,9 +347,6 @@ class MyWidget(QMainWindow):
             self.timer0.start_timer()
         else:
             self.timer0.stop_timer()
-            cursor.execute(
-                f"UPDATE data SET time = '{self.data_table.item(row, col).text()}' WHERE checkbox = '{sender}'")
-            data_base.commit()
 
     def add_content(self, data):
         """Функция, которая добавляет данные в таблицу"""
@@ -366,7 +357,6 @@ class MyWidget(QMainWindow):
             for i in range(6):
                 if i == 3:
                     color = row[4]
-                    print(color)
                     if color == '#ffffff':
                         color_label = QLabel('○')
                     else:
@@ -376,7 +366,7 @@ class MyWidget(QMainWindow):
                     btn = QCheckBox()
                     btn.stateChanged.connect(partial(self.continue_task, row=row_id, col=i - 1))
                     self.data_table.setCellWidget(row_id, 5, btn)
-                    cursor.execute(f"UPDATE data SET checkbox = '{btn}' WHERE task = '{row[2]}'")
+                    cursor.execute(f"UPDATE data SET checkbox = '{btn}' WHERE start_time = '{row[1]}'")
                     data_base.commit()
                 else:
                     self.data_table.setItem(row_id, i, QTableWidgetItem(str(row[i + 1])))
@@ -389,11 +379,9 @@ class MyWidget(QMainWindow):
         """Функция, которая выводит данные пользователя, если они уже есть"""
         cursor.execute(f"SELECT * FROM data WHERE user_id = '{user_id}'")
         data = cursor.fetchall()
-        print(data, 'data')
         if len(data) == 1:
             self.data_table.setVisible(False)
             self.start_text.setStyleSheet("color: rgb(0, 0, 0)")
-            print('done')
         else:
             self.add_content(data[::-1])
 
@@ -422,7 +410,7 @@ class MyWidget(QMainWindow):
             return
         else:
             self.start_time = datetime.datetime.now()
-            self.start_time = self.start_time.strftime("%d-%m-%Y %H:%M")
+            self.start_time = self.start_time.strftime("%d-%m-%Y %H:%M:%S")
 
     def updateUptime(self):
         """Функция, которая обновляет таймер"""
@@ -448,13 +436,11 @@ class MyWidget(QMainWindow):
                 self.color = '#ffffff'
             data_list = [user_id, self.start_time, self.task.text(), '#' + self.tag.text(),
                  self.color, time.strftime("%H:%M:%S", time.gmtime(self.time)), '']
-            print(data_list)
             self.selected_color.setStyleSheet("color: rgb(127, 127, 127)")
             cursor.execute("INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?)", (data_list))
             data_base.commit()
             cursor.execute(f"SELECT * FROM data WHERE user_id = '{user_id}'")
             data = cursor.fetchall()
-            print(data)
             self.add_content(data[::-1])
             self.history_list.append(data_list[1:-1])
             self.task.setText('')
@@ -483,12 +469,6 @@ class MyWidget(QMainWindow):
 if __name__ == '__main__':
     data_base = sqlite3.connect('toggl_db.sqlite3')
     cursor = data_base.cursor()
-    cursor.execute('SELECT * FROM users')
-    print(cursor.fetchall())
-    cursor.execute('SELECT * FROM data')
-    print(cursor.fetchall())
-    cursor.execute('SELECT * FROM plans')
-    print(cursor.fetchall())
     user_id = 0
     app = QApplication([])
     authorization = Authorization()

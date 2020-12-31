@@ -13,6 +13,9 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
+  <property name="styleSheet">
+   <string notr="true">background-color: rgb(127, 127, 127);</string>
+  </property>
   <widget class="QLabel" name="label">
    <property name="geometry">
     <rect>
@@ -79,6 +82,9 @@
      <height>31</height>
     </rect>
    </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(255, 255, 255);</string>
+   </property>
    <property name="placeholderText">
     <string>от 3 символов</string>
    </property>
@@ -96,6 +102,9 @@
     <font>
      <pointsize>8</pointsize>
     </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(255, 255, 255);</string>
    </property>
    <property name="echoMode">
     <enum>QLineEdit::Password</enum>
@@ -146,22 +155,6 @@
    </property>
    <property name="text">
     <string>Зарегистрироваться</string>
-   </property>
-  </widget>
-  <widget class="QLabel" name="label_4">
-   <property name="geometry">
-    <rect>
-     <x>0</x>
-     <y>0</y>
-     <width>491</width>
-     <height>321</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="pixmap">
-    <pixmap>темныйфон.png</pixmap>
    </property>
   </widget>
   <widget class="QPushButton" name="next_button">
@@ -231,7 +224,6 @@
     <string>👁</string>
    </property>
   </widget>
-  <zorder>label_4</zorder>
   <zorder>eye_button</zorder>
   <zorder>label</zorder>
   <zorder>label_2</zorder>

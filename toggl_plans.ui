@@ -13,22 +13,9 @@
   <property name="windowTitle">
    <string>Form</string>
   </property>
-  <widget class="QLabel" name="label">
-   <property name="geometry">
-    <rect>
-     <x>-6</x>
-     <y>-5</y>
-     <width>501</width>
-     <height>501</height>
-    </rect>
-   </property>
-   <property name="text">
-    <string/>
-   </property>
-   <property name="pixmap">
-    <pixmap>светлыйфон.png</pixmap>
-   </property>
-  </widget>
+  <property name="styleSheet">
+   <string notr="true">background-color: rgb(190, 190, 190);</string>
+  </property>
   <widget class="QLabel" name="plans_label">
    <property name="geometry">
     <rect>
@@ -65,6 +52,9 @@
      <height>21</height>
     </rect>
    </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(255, 255, 255);</string>
+   </property>
   </widget>
   <widget class="QPushButton" name="add_button">
    <property name="geometry">
@@ -90,6 +80,9 @@
      <width>461</width>
      <height>351</height>
     </rect>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">background-color: rgb(255, 255, 255);</string>
    </property>
    <property name="widgetResizable">
     <bool>true</bool>
