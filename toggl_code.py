@@ -110,8 +110,6 @@ class Authorization(QWidget):
             cursor.execute(f"SELECT id FROM users WHERE login = '{user_login}'")
             global user_id
             user_id = cursor.fetchone()[0]
-            cursor.execute("INSERT INTO data VALUES (?, ?, ?, ?, ?, ?, ?)", (user_id, '', '', '', '', '', ''))
-            cursor.execute("INSERT INTO plans VALUES (?, ?)", (user_id, ''))
             data_base.commit()
             self.error_message_label.setText('Вы успешно зарегистрированы.')
             self.error_message_label.setStyleSheet("color: rgb(0, 255, 0)")
@@ -294,6 +292,8 @@ class Timers:
 
     def time_add(self):
         """Функция, которая добавляет секунлы"""
+        global flag
+        flag = True
         self.curr_time = self.curr_time.addSecs(1)
         self.data_table.setItem(self.row, self.col, QTableWidgetItem(self.curr_time.toString("hh:mm:ss")))
         cursor.execute(
@@ -332,28 +332,29 @@ class MyWidget(QMainWindow):
         self.start.clicked.connect(self.timerUp.start)
         self.start.clicked.connect(self.current_time)
         self.pause.clicked.connect(self.timerUp.stop)
-        self.stop.clicked.connect(self.timerUp.stop)
-        self.stop.clicked.connect(self.newtask)
-        self.stop.clicked.connect(self.reset)
+        self.stop.clicked.connect(self.check_timers)
 
         self.data_table.setColumnCount(6)
         self.data_table.setHorizontalHeaderLabels(["Начало", "Задача", "Тэг", "Цвет", "Длительность", "Продолжить"])
 
-    def continue_task(self, row, col):
+    def continue_task(self, timer):
         """Функция, которая создаёт таймеры"""
         sender = self.sender()
-        self.timer0 = Timers(sender, row, col, self.data_table)
+        timer0 = timer
+        global flag
         if sender.isChecked():
-            self.timer0.start_timer()
+            flag = True
+            timer0.start_timer()
         else:
-            self.timer0.stop_timer()
+            flag = False
+            timer0.stop_timer()
 
     def add_content(self, data):
         """Функция, которая добавляет данные в таблицу"""
         self.data_table.setVisible(True)
-        self.data_table.setRowCount(len(data) - 1)
+        self.data_table.setRowCount(len(data))
         row_id = 0
-        for row in data[:-1]:
+        for row in data:
             for i in range(6):
                 if i == 3:
                     color = row[4]
@@ -364,10 +365,11 @@ class MyWidget(QMainWindow):
                     self.data_table.setCellWidget(row_id, 3, color_label)
                 elif i == 5:
                     btn = QCheckBox()
-                    btn.stateChanged.connect(partial(self.continue_task, row=row_id, col=i - 1))
-                    self.data_table.setCellWidget(row_id, 5, btn)
                     cursor.execute(f"UPDATE data SET checkbox = '{btn}' WHERE start_time = '{row[1]}'")
                     data_base.commit()
+                    cb_timer = Timers(btn, row_id, i - 1, self.data_table)
+                    btn.stateChanged.connect(partial(self.continue_task, timer=cb_timer))
+                    self.data_table.setCellWidget(row_id, 5, btn)
                 else:
                     self.data_table.setItem(row_id, i, QTableWidgetItem(str(row[i + 1])))
             row_id += 1
@@ -379,7 +381,7 @@ class MyWidget(QMainWindow):
         """Функция, которая выводит данные пользователя, если они уже есть"""
         cursor.execute(f"SELECT * FROM data WHERE user_id = '{user_id}'")
         data = cursor.fetchall()
-        if len(data) == 1:
+        if len(data) == 0:
             self.data_table.setVisible(False)
             self.start_text.setStyleSheet("color: rgb(0, 0, 0)")
         else:
@@ -411,6 +413,18 @@ class MyWidget(QMainWindow):
         else:
             self.start_time = datetime.datetime.now()
             self.start_time = self.start_time.strftime("%d-%m-%Y %H:%M:%S")
+
+    def check_timers(self):
+        if flag == True:
+            self.error_dialog = QErrorMessage()
+            self.error_dialog.showMessage('Сначала остановите другие таймеры.')
+            self.error_dialog.show()
+            return
+        else:
+            self.timerUp.stop()
+            self.newtask()
+            self.reset()
+
 
     def updateUptime(self):
         """Функция, которая обновляет таймер"""
@@ -470,6 +484,7 @@ if __name__ == '__main__':
     data_base = sqlite3.connect('toggl_db.sqlite3')
     cursor = data_base.cursor()
     user_id = 0
+    flag = False
     app = QApplication([])
     authorization = Authorization()
     authorization.show()
